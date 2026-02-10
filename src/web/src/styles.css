@@ -1,0 +1,22 @@
+:root { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+body { margin: 0; background: #0b0c10; color: #e8e8e8; }
+.container { max-width: 920px; margin: 0 auto; padding: 24px; }
+.header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.spacer { flex: 1; }
+.meta { display: flex; gap: 18px; opacity: 0.9; margin-bottom: 12px; }
+.form { display: flex; gap: 8px; margin: 14px 0 18px; }
+.input { flex: 1; padding: 10px 12px; border-radius: 8px; border: 1px solid #2a2a2a; background: #0f1117; color: #e8e8e8; }
+.btn { padding: 10px 12px; border-radius: 8px; border: 1px solid #2a2a2a; background: #141826; color: #e8e8e8; cursor: pointer; }
+.btn:hover { filter: brightness(1.1); }
+.btn.danger { background: #2b1010; }
+.list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.row { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border: 1px solid #262626; border-radius: 10px; background: #0f1117; }
+.rowLeft { display: flex; align-items: center; gap: 10px; }
+.done { text-decoration: line-through; opacity: 0.6; }
+.error { color: #ff7b7b; }
+.muted { opacity: 0.75; }
+.small { font-size: 12px; }
+.loginPanel { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.loginMeta { display: flex; align-items: center; gap: 10px; }
+.pill { font-size: 12px; border: 1px solid #2a2a2a; border-radius: 999px; padding: 2px 8px; background: #0f1117; }
+.card { padding: 14px 12px; border: 1px solid #262626; border-radius: 10px; background: #0f1117; }
