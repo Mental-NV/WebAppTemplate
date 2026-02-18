@@ -74,6 +74,8 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+app.UseStaticFiles();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -86,8 +88,8 @@ if (app.Environment.IsDevelopment())
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGet("/", () => Results.Ok(new { name = "Api", status = "ok" }))
-   .ExcludeFromDescription();
+// Serve SPA for root and unknown routes (fallback)
+app.MapFallbackToFile("index.html");
 
 // ---- Manual URL versioning ----
 // Map explicit route groups for each version.

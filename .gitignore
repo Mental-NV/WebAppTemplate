@@ -11,6 +11,7 @@ TestResults/
 *.db
 *.db-shm
 *.db-wal
+wwwroot/
 
 # --- Node / Vite ---
 node_modules/

@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/__tests__/todopage.test.tsx","./src/auth/authcontext.tsx","./src/auth/authstorage.ts","./src/pages/todopage.tsx","./src/services/authapi.ts","./src/services/todosapi.ts","./src/test/setup.ts","./src/ui/loginpanel.tsx","./src/ui/todoform.tsx"],"version":"5.9.3"}
