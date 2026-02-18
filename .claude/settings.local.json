@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(pwsh:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(dotnet dev-certs https:*)",
+      "Bash(curl:*)",
+      "Bash(dotnet run)",
+      "Bash(taskkill:*)",
+      "Bash(tasklist)",
+      "Bash(findstr:*)",
+      "Bash(timeout:*)"
     ]
   }
 }
