@@ -8,7 +8,8 @@
     <UserSecretsId>c7fb9f0e-38cb-47d5-8887-1870d7dd4b85</UserSecretsId>
   </PropertyGroup>
 
-  <ItemGroup>    <PackageReference Include="Google.Apis.Auth" Version="1.73.0" />
+  <ItemGroup>
+    <PackageReference Include="Google.Apis.Auth" Version="1.73.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.2" />
 
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.2" />
