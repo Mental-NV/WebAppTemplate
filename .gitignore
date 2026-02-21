@@ -20,6 +20,8 @@ dist/
 .DS_Store
 .vite/
 coverage/
+playwright-report/
+test-results/
 
 # --- OS ---
 Thumbs.db

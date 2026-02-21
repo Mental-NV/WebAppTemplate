@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Api.Data;
 using Api.Features.Auth;
+using Api.Features.E2E;
 using Api.Features.Todos;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -82,7 +83,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
     app.UseCors("dev");
 
-    await DbInitializer.InitializeAsync(app);
+    await DbInitializer.InitializeAsync(app, seedDefaults: true);
+}
+
+if (app.Environment.IsEnvironment("E2E"))
+{
+    await DbInitializer.InitializeAsync(app, seedDefaults: false);
 }
 
 app.UseAuthentication();
@@ -95,6 +101,11 @@ app.MapFallbackToFile("index.html");
 // Map explicit route groups for each version.
 // Add v2 later by mapping another group: /api/v2
 var v1 = app.MapGroup("/api/v1");
+
+if (app.Environment.IsEnvironment("E2E"))
+{
+    v1.MapE2EEndpoints();
+}
 
 v1.MapAuthEndpoints();
 v1.MapTodosEndpoints();

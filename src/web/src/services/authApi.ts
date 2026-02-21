@@ -39,6 +39,13 @@ export async function exchangeGoogleIdToken(idToken: string): Promise<ExchangeRe
   })
 }
 
+export async function e2eLogin(): Promise<ExchangeResponse> {
+  return await http<ExchangeResponse>(`/api/v1/e2e/auth/login`, {
+    method: 'POST',
+    body: JSON.stringify({})
+  })
+}
+
 export async function me(accessToken: string): Promise<AuthUser> {
   const res = await fetch(`/api/v1/auth/me`, {
     headers: {

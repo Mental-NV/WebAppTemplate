@@ -5,12 +5,15 @@ namespace Api.Data;
 
 public static class DbInitializer
 {
-    public static async Task InitializeAsync(WebApplication app)
+    public static async Task InitializeAsync(WebApplication app, bool seedDefaults = true)
     {
         await using var scope = app.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         await db.Database.EnsureCreatedAsync();
+
+        if (!seedDefaults)
+            return;
 
         if (await db.Todos.AnyAsync())
             return;

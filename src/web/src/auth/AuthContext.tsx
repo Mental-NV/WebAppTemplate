@@ -7,6 +7,7 @@ type AuthState = {
   user: AuthUser | null
   isAuthenticated: boolean
   loginWithGoogleIdToken: (googleIdToken: string) => Promise<void>
+  loginWithAccessToken: (token: string) => Promise<void>
   logout: () => void
   refreshMe: () => Promise<void>
 }
@@ -19,14 +20,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const isAuthenticated = !!accessToken
 
-  async function refreshMe() {
-    if (!accessToken) {
+  async function refreshMeInternal(tokenOverride?: string | null) {
+    const resolvedToken = tokenOverride ?? accessToken
+    if (!resolvedToken) {
       setUser(null)
       return
     }
 
     try {
-      const u = await me(accessToken)
+      const u = await me(resolvedToken)
       setUser(u)
     } catch {
       setUser(null)
@@ -35,11 +37,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  async function refreshMe() {
+    await refreshMeInternal()
+  }
+
   async function loginWithGoogleIdToken(googleIdToken: string) {
     const res = await exchangeGoogleIdToken(googleIdToken)
     setToken(res.accessToken)
     setAccessToken(res.accessToken)
-    await refreshMe()
+    await refreshMeInternal(res.accessToken)
+  }
+
+  async function loginWithAccessToken(token: string) {
+    setToken(token)
+    setAccessToken(token)
+    await refreshMeInternal(token)
   }
 
   function logout() {
@@ -55,6 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     isAuthenticated,
     loginWithGoogleIdToken,
+    loginWithAccessToken,
     logout,
     refreshMe
   }), [accessToken, user])

@@ -45,7 +45,7 @@ Edit `src/api/appsettings.json`:
 cd src/api
 dotnet run
 ```
-Swagger (dev only): http://localhost:5000/swagger
+Swagger (dev only): https://localhost:5001/swagger
 
 ### 2) Frontend
 ```bash
@@ -55,13 +55,37 @@ npm run dev
 ```
 Vite dev server: http://localhost:5173
 
-The Vite dev server proxies `/api/*` to `http://localhost:5000` (see `vite.config.ts`).
+The Vite dev server proxies `/api/*` to `https://localhost:5001` (see `vite.config.ts`).
 
 ## Tests
 ```bash
 cd tests/Api.Tests
 dotnet test
 ```
+
+```bash
+cd src/web
+npm run test
+```
+
+### Playwright E2E (local)
+Recommended local runner:
+```powershell
+.\scripts\e2e.ps1
+```
+
+Optional flags:
+- `-InstallBrowser` (first-time Chromium install)
+- `-Headed`
+- `-Debug`
+
+What this does:
+- builds SPA and copies assets to API `wwwroot` via `.\scripts\build.ps1`
+- starts API in `ASPNETCORE_ENVIRONMENT=E2E` on `http://localhost:5000`
+- uses a fresh SQLite DB file per run
+- uses E2E auth mode (no Google popup automation)
+
+Use `-BaseUrl` (or set `E2E_BASE_URL`) to run E2E against a different URL, including HTTPS.
 
 ## API endpoints
 ### Auth
@@ -74,6 +98,9 @@ dotnet test
 - `PUT /api/v1/todos/{id}`
 - `DELETE /api/v1/todos/{id}`
 
+### E2E-only endpoints (`ASPNETCORE_ENVIRONMENT=E2E`)
+- `POST /api/v1/e2e/auth/login` (issue local test JWT)
+- `POST /api/v1/e2e/reset` (clear todos)
 
 ## Testing note
 Backend integration tests use a **Test** authentication scheme so protected endpoints can be tested without real JWT/Google.
