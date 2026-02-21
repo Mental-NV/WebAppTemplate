@@ -1,10 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <UserSecretsId>c7fb9f0e-38cb-47d5-8887-1870d7dd4b85</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>    <PackageReference Include="Google.Apis.Auth" Version="1.73.0" />
