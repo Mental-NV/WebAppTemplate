@@ -1,4 +1,7 @@
-# Full-stack Web App Template (ASP.NET Core Minimal API + Vertical Slices + URL versioning (route groups) + React/Vite)
+# Full-stack Web App Template
+- ASP.NET Core + Minimal API + Vertical Slices + URL versioning + xUnity
+- React + TypeScript + Vite + Vite tests
+- Google Auth (JWT)
 
 ## Prereqs
 - .NET SDK (recommended: .NET 10)
