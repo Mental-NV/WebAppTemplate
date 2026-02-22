@@ -21,6 +21,7 @@ builder.Services.AddOptions<JwtOptions>()
     .ValidateOnStart();
 
 builder.Services.AddSingleton<JwtTokenService>();
+builder.Services.AddSingleton<IGoogleIdTokenValidator, GoogleIdTokenValidator>();
 
 // --- DB ---
 builder.Services.AddDbContext<AppDbContext>(opt =>
