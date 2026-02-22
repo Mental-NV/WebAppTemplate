@@ -20,7 +20,7 @@ dist/
 .DS_Store
 .vite/
 coverage/
-
+tsconfig.tsbuildinfo
 
 # --- OS ---
 Thumbs.db
