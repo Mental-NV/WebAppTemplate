@@ -14,6 +14,7 @@ public static class ExchangeGoogleIdToken
         Request req,
         IOptions<GoogleOptions> googleOptions,
         JwtTokenService jwt,
+        IWebHostEnvironment env,
         CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(req.IdToken))
@@ -22,6 +23,8 @@ public static class ExchangeGoogleIdToken
         var clientId = googleOptions.Value.ClientId;
         if (string.IsNullOrWhiteSpace(clientId))
             return Results.Problem("Google:ClientId is not configured.", statusCode: 500);
+        if (clientId.Contains("REPLACE_ME", StringComparison.OrdinalIgnoreCase))
+            return Results.Problem("Google:ClientId is still set to the placeholder value.", statusCode: 500);
 
         GoogleJsonWebSignature.Payload payload;
         try
@@ -31,8 +34,17 @@ public static class ExchangeGoogleIdToken
                 Audience = new[] { clientId }
             });
         }
-        catch
+        catch (Exception ex)
         {
+            if (env.IsDevelopment())
+            {
+                return Results.Json(new
+                {
+                    error = "Invalid Google ID token",
+                    detail = ex.Message
+                }, statusCode: 401);
+            }
+
             return Results.Unauthorized();
         }
 
