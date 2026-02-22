@@ -19,14 +19,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const isAuthenticated = !!accessToken
 
-  async function refreshMe() {
-    if (!accessToken) {
+  async function refreshMeWithToken(token: string | null) {
+    if (!token) {
       setUser(null)
       return
     }
 
     try {
-      const u = await me(accessToken)
+      const u = await me(token)
       setUser(u)
     } catch {
       setUser(null)
@@ -35,11 +35,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  async function refreshMe() {
+    await refreshMeWithToken(accessToken)
+  }
+
   async function loginWithGoogleIdToken(googleIdToken: string) {
     const res = await exchangeGoogleIdToken(googleIdToken)
     setToken(res.accessToken)
     setAccessToken(res.accessToken)
-    await refreshMe()
+    await refreshMeWithToken(res.accessToken)
   }
 
   function logout() {
