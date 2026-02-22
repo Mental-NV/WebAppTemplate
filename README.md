@@ -22,6 +22,9 @@ This template uses:
 ### Configure Google OAuth client
 Create a Google OAuth client (Google Cloud Console) and add your dev origin:
 - Authorized JavaScript origins: `http://localhost:5173`
+- If you run the built SPA from the API (`http://localhost:5000` / `https://localhost:5001`), also add:
+  - `http://localhost:5000`
+  - `https://localhost:5001`
 
 Then set the client id in both SPA and API config.
 
@@ -54,6 +57,12 @@ npm install
 npm run dev
 ```
 Vite dev server: http://localhost:5173
+
+If you are serving the SPA from the API on port `5000/5001`, build the frontend after changing `src/web/.env.local`:
+```bash
+cd src/web
+npm run build
+```
 
 The Vite dev server proxies `/api/*` to `http://localhost:5000` (see `vite.config.ts`).
 

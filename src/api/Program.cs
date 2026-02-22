@@ -10,8 +10,16 @@ using Api.Features.Todos;
 var builder = WebApplication.CreateBuilder(args);
 
 // --- Options ---
-builder.Services.Configure<GoogleOptions>(builder.Configuration.GetSection("Google"));
-builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
+builder.Services.AddOptions<GoogleOptions>()
+    .Bind(builder.Configuration.GetSection("Google"))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services.AddOptions<JwtOptions>()
+    .Bind(builder.Configuration.GetSection("Jwt"))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
 builder.Services.AddSingleton<JwtTokenService>();
 
 // --- DB ---
