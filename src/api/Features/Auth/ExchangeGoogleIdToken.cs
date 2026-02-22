@@ -13,6 +13,7 @@ public static class ExchangeGoogleIdToken
     public static async Task<IResult> Handle(
         Request req,
         IOptions<GoogleOptions> googleOptions,
+        IGoogleIdTokenValidator googleIdTokenValidator,
         JwtTokenService jwt,
         IWebHostEnvironment env,
         CancellationToken ct)
@@ -29,10 +30,7 @@ public static class ExchangeGoogleIdToken
         GoogleJsonWebSignature.Payload payload;
         try
         {
-            payload = await GoogleJsonWebSignature.ValidateAsync(req.IdToken, new GoogleJsonWebSignature.ValidationSettings
-            {
-                Audience = new[] { clientId }
-            });
+            payload = await googleIdTokenValidator.ValidateAsync(req.IdToken, clientId, ct);
         }
         catch (Exception ex)
         {
