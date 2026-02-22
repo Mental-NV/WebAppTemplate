@@ -21,6 +21,7 @@ dist/
 .vite/
 coverage/
 
+
 # --- OS ---
 Thumbs.db
 
