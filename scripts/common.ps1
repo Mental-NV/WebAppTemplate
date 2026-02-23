@@ -316,6 +316,13 @@ function Install-WebDependencies {
         return
     }
 
+    $effectiveCi = Get-EffectiveCiMode
+
+    if (-not $effectiveCi) {
+        Invoke-External -FilePath "npm" -Arguments @("install") -WorkingDirectory $WebDir -StepName "npm install"
+        return
+    }
+
     if (Test-Path -LiteralPath $LockFilePath) {
         Invoke-External -FilePath "npm" -Arguments @("ci") -WorkingDirectory $WebDir -StepName "npm ci"
         return
