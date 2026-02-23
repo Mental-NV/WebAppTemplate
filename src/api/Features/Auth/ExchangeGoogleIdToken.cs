@@ -19,13 +19,20 @@ public static class ExchangeGoogleIdToken
         CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(req.IdToken))
+        {
             return Results.BadRequest(new { error = "idToken is required" });
+        }
 
         var clientId = googleOptions.Value.ClientId;
         if (string.IsNullOrWhiteSpace(clientId))
+        {
             return Results.Problem("Google:ClientId is not configured.", statusCode: 500);
+        }
+
         if (clientId.Contains("REPLACE_ME", StringComparison.OrdinalIgnoreCase))
+        {
             return Results.Problem("Google:ClientId is still set to the placeholder value.", statusCode: 500);
+        }
 
         GoogleJsonWebSignature.Payload payload;
         try
@@ -53,10 +60,14 @@ public static class ExchangeGoogleIdToken
         };
 
         if (!string.IsNullOrWhiteSpace(payload.Email))
+        {
             claims.Add(new Claim(ClaimTypes.Email, payload.Email));
+        }
 
         if (!string.IsNullOrWhiteSpace(payload.Name))
+        {
             claims.Add(new Claim(ClaimTypes.Name, payload.Name));
+        }
 
         var (token, exp) = jwt.CreateAccessToken(claims);
 

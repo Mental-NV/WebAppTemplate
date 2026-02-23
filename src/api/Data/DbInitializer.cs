@@ -1,5 +1,5 @@
-using Microsoft.EntityFrameworkCore;
 using Api.Features.Todos;
+using Microsoft.EntityFrameworkCore;
 
 namespace Api.Data;
 
@@ -13,7 +13,9 @@ public static class DbInitializer
         await db.Database.EnsureCreatedAsync();
 
         if (await db.Todos.AnyAsync())
+        {
             return;
+        }
 
         db.Todos.AddRange(
             new TodoItem { Title = "Buy milk", IsCompleted = false },

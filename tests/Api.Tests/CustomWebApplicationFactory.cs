@@ -20,7 +20,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             // Replace DbContext with in-memory SQLite
             var descriptors = services.Where(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>)).ToList();
             foreach (var d in descriptors)
+            {
                 services.Remove(d);
+            }
 
             _connection = new SqliteConnection("Data Source=:memory:");
             _connection.Open();

@@ -18,7 +18,9 @@ public sealed class JwtTokenService
     public (string Token, DateTime ExpiresAtUtc) CreateAccessToken(IEnumerable<Claim> claims)
     {
         if (string.IsNullOrWhiteSpace(_opt.SigningKey))
+        {
             throw new InvalidOperationException("Jwt:SigningKey is not configured.");
+        }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_opt.SigningKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

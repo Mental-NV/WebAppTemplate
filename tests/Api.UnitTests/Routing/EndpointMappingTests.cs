@@ -1,8 +1,8 @@
-using Api.Features.Auth;
 using Api.Data;
+using Api.Features.Auth;
 using Api.Features.Todos;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Options;
 
@@ -73,7 +73,9 @@ public sealed class EndpointMappingTests
         Assert.NotNull(endpoint);
 
         if (requiresAuth)
+        {
             Assert.Contains(endpoint!.Metadata, m => m is IAuthorizeData);
+        }
     }
 
     private static RouteEndpoint? FindRoute(IEnumerable<RouteEndpoint> endpoints, string pattern, string method)
@@ -81,7 +83,9 @@ public sealed class EndpointMappingTests
         return endpoints.FirstOrDefault(e =>
         {
             if (!string.Equals(e.RoutePattern.RawText, pattern, StringComparison.Ordinal))
+            {
                 return false;
+            }
 
             var methods = e.Metadata.GetMetadata<IHttpMethodMetadata>()?.HttpMethods;
             return methods is not null && methods.Contains(method, StringComparer.OrdinalIgnoreCase);
