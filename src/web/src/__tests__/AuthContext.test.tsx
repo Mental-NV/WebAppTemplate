@@ -70,7 +70,7 @@ describe('AuthContext', () => {
 
     expect(screen.getByTestId('authed')).toHaveTextContent('true')
     await waitFor(() => expect(authApiMocks.me).toHaveBeenCalledWith('stored-token'))
-    expect(screen.getByTestId('user-email')).toHaveTextContent('user@example.com')
+    await waitFor(() => expect(screen.getByTestId('user-email')).toHaveTextContent('user@example.com'))
   })
 
   it('clears invalid stored token when me fails on mount', async () => {
@@ -102,7 +102,7 @@ describe('AuthContext', () => {
     await waitFor(() => expect(authStorageMocks.setAccessToken).toHaveBeenCalledWith('app-jwt'))
     await waitFor(() => expect(authApiMocks.me).toHaveBeenCalledWith('app-jwt'))
     expect(screen.getByTestId('token')).toHaveTextContent('app-jwt')
-    expect(screen.getByTestId('user-email')).toHaveTextContent('user@example.com')
+    await waitFor(() => expect(screen.getByTestId('user-email')).toHaveTextContent('user@example.com'))
     expect(screen.getByTestId('authed')).toHaveTextContent('true')
   })
 
