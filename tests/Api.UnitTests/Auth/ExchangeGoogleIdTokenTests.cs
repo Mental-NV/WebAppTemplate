@@ -88,7 +88,7 @@ public sealed class ExchangeGoogleIdTokenTests
     {
         var validator = new FakeGoogleIdTokenValidator
         {
-            ExceptionToThrow = new Exception("sensitive detail")
+            ExceptionToThrow = new InvalidOperationException("sensitive detail")
         };
 
         var result = await ExchangeGoogleIdToken.Handle(

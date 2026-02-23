@@ -31,7 +31,7 @@ internal static class ResultTestHelper
 
     public static JsonDocument ParseJson(string body) => JsonDocument.Parse(body);
 
-    private static IServiceProvider CreateRequestServices()
+    private static ServiceProvider CreateRequestServices()
     {
         var services = new ServiceCollection();
         services.AddLogging();

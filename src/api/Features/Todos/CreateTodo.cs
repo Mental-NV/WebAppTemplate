@@ -4,6 +4,8 @@ namespace Api.Features.Todos;
 
 public static class CreateTodo
 {
+    internal static readonly string[] TitleRequiredErrors = ["Title is required."];
+
     public sealed record Request(string Title);
     public sealed record Response(int Id, string Title, bool IsCompleted, DateTime CreatedAtUtc, DateTime? UpdatedAtUtc);
 
@@ -13,7 +15,7 @@ public static class CreateTodo
         {
             return Results.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["title"] = new[] { "Title is required." }
+                ["title"] = TitleRequiredErrors
             });
         }
 
