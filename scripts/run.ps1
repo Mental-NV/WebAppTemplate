@@ -1,11 +1,9 @@
 # Run script for WebAppTemplate published app
-# Publishes (by default) and runs API + SPA as a single unit from the publish folder
+# Runs the published API + SPA artifact from the publish folder
 
 param(
-    [string]$Configuration = "Release",
     [string]$PublishOutputDir = "artifacts/publish/app",
     [string]$DbFilePath = "",
-    [switch]$NoPublish,
     [string]$SecretsFile = "scripts/secrets.local.ps1",
     [string]$Environment = "Development",
     [int]$HttpPort = 5000,
@@ -22,21 +20,16 @@ $paths = Get-RepoPaths
 $effectiveCi = Get-EffectiveCiMode -CiSwitch:$CI
 $platform = Get-PlatformLabel
 
-$resolvedPublishOutputDir = $PublishOutputDir
-if (-not [System.IO.Path]::IsPathRooted($resolvedPublishOutputDir)) {
-    $resolvedPublishOutputDir = Join-Path -Path $paths.ProjectRoot -ChildPath $resolvedPublishOutputDir
-}
-
-$publishScript = Join-Path -Path $PSScriptRoot -ChildPath "publish.ps1"
-$apiDllPath = Join-Path -Path $resolvedPublishOutputDir -ChildPath "Api.dll"
-$spaIndexPath = Join-Path -Path (Join-Path -Path $resolvedPublishOutputDir -ChildPath "wwwroot") -ChildPath "index.html"
+$artifactPaths = Get-PublishArtifactPaths -ProjectRoot $paths.ProjectRoot -OutputDir $PublishOutputDir
+$resolvedPublishOutputDir = $artifactPaths.OutputDir
 
 Write-Host "Running published WebAppTemplate..." -ForegroundColor Cyan
-Write-Host "Platform: $platform | CI: $effectiveCi | Configuration: $Configuration" -ForegroundColor Gray
+Write-Host "Platform: $platform | CI: $effectiveCi" -ForegroundColor Gray
 Write-Host "Publish output: $resolvedPublishOutputDir" -ForegroundColor Gray
+Write-Host "Assumes scripts/build.ps1 -> scripts/ci.ps1 -> scripts/publish.ps1 have already completed." -ForegroundColor Gray
 
 $step = 0
-$totalSteps = 6
+$totalSteps = 5
 
 $step++
 Write-Host "`n[$step/$totalSteps] Loading secrets..." -ForegroundColor Yellow
@@ -46,39 +39,13 @@ Write-Host "`n[$step/$totalSteps] Loading secrets..." -ForegroundColor Yellow
 $step++
 Write-Host "`n[$step/$totalSteps] Preflight checks..." -ForegroundColor Yellow
 Assert-CommandAvailable -Name "dotnet"
-if (-not $NoPublish.IsPresent) {
-    Assert-CommandAvailable -Name "pwsh"
-}
-
-$step++
-Write-Host "`n[$step/$totalSteps] Preparing publish artifact..." -ForegroundColor Yellow
-if ($NoPublish.IsPresent) {
-    Write-Host "Skipping publish (-NoPublish)." -ForegroundColor DarkGray
-}
-else {
-    $publishArgs = @(
-        "-NoLogo",
-        "-NoProfile",
-        "-File", $publishScript,
-        "-Configuration", $Configuration,
-        "-OutputDir", $resolvedPublishOutputDir,
-        "-SecretsFile", $SecretsFile
-    )
-    if ($CI.IsPresent) {
-        $publishArgs += "-CI"
-    }
-
-    Invoke-External -FilePath "pwsh" -Arguments $publishArgs -WorkingDirectory $paths.ProjectRoot -StepName "publish.ps1"
-}
 
 $step++
 Write-Host "`n[$step/$totalSteps] Validating publish artifact and required runtime secrets..." -ForegroundColor Yellow
-if (-not (Test-Path -LiteralPath $apiDllPath)) {
-    throw "Api.dll was not found in publish output: $apiDllPath"
-}
-if (-not (Test-Path -LiteralPath $spaIndexPath)) {
-    throw "SPA index.html was not found in publish output: $spaIndexPath"
-}
+Assert-PublishArtifact `
+    -PublishOutputDir $artifactPaths.OutputDir `
+    -ApiDllPath $artifactPaths.ApiDllPath `
+    -SpaIndexPath $artifactPaths.SpaIndexPath
 
 Assert-RequiredEnvVarValues -Names @(
     "ASPNETCORE_Kestrel__Certificates__Default__Path",

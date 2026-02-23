@@ -3,10 +3,6 @@
 
 param(
     [string]$Configuration = "Debug",
-    [switch]$NoRestore,
-    [switch]$NoBuild,
-    [switch]$NoWebInstall,
-    [switch]$UseNpmInstall,
     [switch]$SkipApiUnitTests,
     [switch]$SkipApiIntegrationTests,
     [switch]$SkipWebTests,
@@ -25,10 +21,10 @@ $platform = Get-PlatformLabel
 
 Write-Host "Running CI checks..." -ForegroundColor Cyan
 Write-Host "Platform: $platform | CI: $effectiveCi | Configuration: $Configuration" -ForegroundColor Gray
-Write-Host "Restore: $(-not $NoRestore) | Build: $(-not $NoBuild) | Web install: $(-not $NoWebInstall)" -ForegroundColor Gray
+Write-Host "Assumes scripts/build.ps1 already completed for the same configuration." -ForegroundColor Gray
 
 $step = 0
-$totalSteps = 9
+$totalSteps = 7
 
 $step++
 Write-Host "`n[$step/$totalSteps] Preflight checks..." -ForegroundColor Yellow
@@ -44,34 +40,13 @@ Write-Host "`n[$step/$totalSteps] Materializing optional HTTPS certificate..." -
 [void](Initialize-HttpsCertificateMaterialization -ProjectRoot $paths.ProjectRoot)
 
 $step++
-Write-Host "`n[$step/$totalSteps] Restoring .NET dependencies..." -ForegroundColor Yellow
-if ($NoRestore.IsPresent) {
-    Write-Host "Skipping dotnet restore (-NoRestore)." -ForegroundColor DarkGray
+Write-Host "`n[$step/$totalSteps] Validating build outputs..." -ForegroundColor Yellow
+$apiWwwRootIndexPath = Join-Path -Path $paths.ApiWwwRootDir -ChildPath "index.html"
+if (-not (Test-Path -LiteralPath $paths.WebDistDir)) {
+    throw "Expected web build output at '$($paths.WebDistDir)'. Run scripts/build.ps1 first."
 }
-else {
-    Invoke-External -FilePath "dotnet" -Arguments @("restore", $paths.SolutionPath) -WorkingDirectory $paths.ProjectRoot -StepName "dotnet restore"
-}
-
-$step++
-Write-Host "`n[$step/$totalSteps] Installing web dependencies..." -ForegroundColor Yellow
-if ($NoWebInstall.IsPresent) {
-    Write-Host "Skipping npm install/ci (-NoWebInstall)." -ForegroundColor DarkGray
-}
-else {
-    Install-WebDependencies -WebDir $paths.WebDir -LockFilePath $paths.WebPackageLockPath -UseNpmInstall:$UseNpmInstall
-}
-
-$step++
-Write-Host "`n[$step/$totalSteps] Building solution..." -ForegroundColor Yellow
-if ($NoBuild.IsPresent) {
-    Write-Host "Skipping build (-NoBuild). Tests will still run with --no-build." -ForegroundColor DarkGray
-}
-else {
-    $buildArgs = @("build", $paths.SolutionPath, "--configuration", $Configuration)
-    if (-not $NoRestore.IsPresent) {
-        $buildArgs += "--no-restore"
-    }
-    Invoke-External -FilePath "dotnet" -Arguments $buildArgs -WorkingDirectory $paths.ProjectRoot -StepName "dotnet build"
+if (-not (Test-Path -LiteralPath $apiWwwRootIndexPath)) {
+    throw "Expected synced SPA asset at '$apiWwwRootIndexPath'. Run scripts/build.ps1 first."
 }
 
 $dotnetTestCommonArgs = @(
