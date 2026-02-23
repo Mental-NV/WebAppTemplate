@@ -141,7 +141,7 @@ Workflow: `.github/workflows/build-and-ci.yml`
 - Executes:
   - `scripts/build.ps1`
   - `scripts/ci.ps1`
-- Additional Ubuntu smoke job (when required secrets are configured):
+- Additional Ubuntu smoke job (required; expects the secrets below):
   - Materializes HTTPS cert from `HTTPS_CERT_PFX_BASE64` + `HTTPS_CERT_PASSWORD`
   - `scripts/publish.ps1`
   - `scripts/run.ps1 -NoPublish`

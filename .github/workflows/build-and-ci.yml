@@ -104,30 +104,7 @@ jobs:
           cache: npm
           cache-dependency-path: src/web/package-lock.json
 
-      - name: Check required secrets
-        id: check-secrets
-        run: |
-          $missing = @()
-          if ([string]::IsNullOrWhiteSpace($env:Google__ClientId)) { $missing += "GOOGLE__CLIENTID" }
-          if ([string]::IsNullOrWhiteSpace($env:Jwt__SigningKey)) { $missing += "JWT__SIGNINGKEY" }
-          if ([string]::IsNullOrWhiteSpace($env:HTTPS_CERT_PFX_BASE64)) { $missing += "HTTPS_CERT_PFX_BASE64" }
-          if ([string]::IsNullOrWhiteSpace($env:HTTPS_CERT_PASSWORD)) { $missing += "HTTPS_CERT_PASSWORD" }
-
-          if ($missing.Count -gt 0) {
-            Write-Host "Skipping publish/run smoke job steps. Missing secrets: $($missing -join ', ')." -ForegroundColor Yellow
-            Add-Content -Path $env:GITHUB_OUTPUT -Value "enabled=false"
-          }
-          else {
-            Add-Content -Path $env:GITHUB_OUTPUT -Value "enabled=true"
-          }
-
-      - name: Skip publish/run smoke test (missing secrets)
-        if: ${{ steps.check-secrets.outputs.enabled != 'true' }}
-        run: |
-          Write-Host "Publish/run smoke steps skipped because required secrets are not configured." -ForegroundColor Yellow
-
       - name: Materialize HTTPS certificate
-        if: ${{ steps.check-secrets.outputs.enabled == 'true' }}
         run: |
           . ./scripts/common.ps1
           $paths = Get-RepoPaths
@@ -140,11 +117,9 @@ jobs:
           Add-Content -Path $env:GITHUB_ENV -Value "ASPNETCORE_Kestrel__Certificates__Default__Password=$($result.Password)"
 
       - name: Publish
-        if: ${{ steps.check-secrets.outputs.enabled == 'true' }}
         run: ./scripts/publish.ps1 -Configuration Release -CI
 
       - name: Run HTTPS smoke test
-        if: ${{ steps.check-secrets.outputs.enabled == 'true' }}
         run: |
           $artifactDir = Join-Path -Path $PWD -ChildPath "artifacts"
           New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
