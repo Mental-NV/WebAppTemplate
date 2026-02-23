@@ -1,0 +1,23 @@
+import { expect, test } from '@playwright/test'
+
+test('authenticated user can create, toggle, and delete a todo', async ({ page }) => {
+  const title = `e2e-${Date.now()}`
+
+  await page.goto('/')
+
+  await expect(page.getByText('Signed in')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
+
+  await page.getByPlaceholder('New todo title...').fill(title)
+  await page.getByRole('button', { name: 'Add' }).click()
+
+  const row = page.locator('li', { hasText: title })
+  await expect(row).toBeVisible()
+
+  const labelText = row.locator('label span', { hasText: title })
+  await row.getByRole('checkbox').check()
+  await expect(labelText).toHaveClass(/done/)
+
+  await row.getByRole('button', { name: 'Delete' }).click()
+  await expect(page.locator('li', { hasText: title })).toHaveCount(0)
+})

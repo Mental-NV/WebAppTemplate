@@ -1,6 +1,7 @@
 using System.Text;
 using Api.Data;
 using Api.Features.Auth;
+using Api.Features.TestAuth;
 using Api.Features.Todos;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -107,6 +108,11 @@ var v1 = app.MapGroup("/api/v1");
 
 v1.MapAuthEndpoints();
 v1.MapTodosEndpoints();
+
+if (app.Environment.IsEnvironment("E2E"))
+{
+    v1.MapTestAuthEndpoints();
+}
 
 app.Run();
 

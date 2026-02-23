@@ -1,6 +1,5 @@
 using System.Data.Common;
 using Api.Data;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
@@ -10,12 +9,25 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Api.Tests;
 
-public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
+public sealed class E2eAuthWebApplicationFactory : WebApplicationFactory<Program>
 {
     private DbConnection? _connection;
 
+    public E2eAuthWebApplicationFactory()
+    {
+        Environment.SetEnvironmentVariable("Google__ClientId", "ci-test.apps.googleusercontent.com");
+        Environment.SetEnvironmentVariable("Jwt__Issuer", "AppTemplate");
+        Environment.SetEnvironmentVariable("Jwt__Audience", "AppTemplate");
+        Environment.SetEnvironmentVariable("Jwt__SigningKey", "ci_test_signing_key_32_chars_minimum_123456");
+        Environment.SetEnvironmentVariable("Jwt__AccessTokenMinutes", "60");
+        Environment.SetEnvironmentVariable("E2E_AUTH_ENABLED", "true");
+        Environment.SetEnvironmentVariable("E2E_AUTH_SECRET", "test-secret");
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.UseEnvironment("E2E");
+
         builder.ConfigureAppConfiguration((_, config) =>
         {
             config.AddInMemoryCollection(new Dictionary<string, string?>
@@ -24,13 +36,14 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 ["Jwt:Issuer"] = "AppTemplate",
                 ["Jwt:Audience"] = "AppTemplate",
                 ["Jwt:SigningKey"] = "ci_test_signing_key_32_chars_minimum_123456",
-                ["Jwt:AccessTokenMinutes"] = "60"
+                ["Jwt:AccessTokenMinutes"] = "60",
+                ["E2E_AUTH_ENABLED"] = "true",
+                ["E2E_AUTH_SECRET"] = "test-secret"
             });
         });
 
         builder.ConfigureServices(services =>
         {
-            // Replace DbContext with in-memory SQLite
             var descriptors = services.Where(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>)).ToList();
             foreach (var d in descriptors)
             {
@@ -42,11 +55,6 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             services.AddDbContext<AppDbContext>(opt => opt.UseSqlite(_connection));
 
-            // Override default authentication scheme to a test scheme.
-            services.AddAuthentication("Test")
-                .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("Test", _ => { });
-
-            // Ensure DB
             var sp = services.BuildServiceProvider();
             using var scope = sp.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
