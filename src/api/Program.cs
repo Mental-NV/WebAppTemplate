@@ -26,7 +26,7 @@ builder.Services.AddSingleton<IGoogleIdTokenValidator, GoogleIdTokenValidator>()
 // --- DB ---
 builder.Services.AddDbContext<AppDbContext>(opt =>
 {
-    var cs = builder.Configuration.GetConnectionString("Default") ?? "Data Source=AppData\\app.db";
+    var cs = builder.Configuration.GetConnectionString("Default") ?? "Data Source=AppData/app.db";
     opt.UseSqlite(cs);
 });
 

@@ -1,0 +1,74 @@
+name: Build and CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+
+      # Placeholder secrets for future publish/run workflows (not required in this workflow):
+      # GOOGLE_OAUTH_WEB_CLIENT_ID
+      # JWT_SIGNING_KEY
+      # HTTPS_CERT_PFX_BASE64
+      # HTTPS_CERT_PASSWORD
+      - name: Build
+        run: ./scripts/build.ps1 -Configuration Release -CI
+
+  ci:
+    name: CI Checks (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+
+      - name: CI checks
+        run: ./scripts/ci.ps1 -Configuration Release -CI

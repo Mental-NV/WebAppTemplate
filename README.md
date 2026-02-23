@@ -6,6 +6,7 @@
 ## Prereqs
 - .NET SDK (recommended: .NET 10)
 - Node.js 20+ (or 18+)
+- PowerShell 7+ (`pwsh`) for cross-platform scripts
 
 ## Solution layout
 - Backend API: `src/api`
@@ -71,6 +72,69 @@ The Vite dev server proxies `/api/*` to `http://localhost:5000` (see `vite.confi
 cd tests/Api.Tests
 dotnet test
 ```
+
+## Scripts (`pwsh`, Windows/Linux)
+Run from repo root.
+
+### Build API + Web and copy SPA to `src/api/wwwroot`
+```powershell
+pwsh -NoLogo -NoProfile -File ./scripts/build.ps1
+```
+
+### CI checks (API unit + integration + web tests)
+```powershell
+pwsh -NoLogo -NoProfile -File ./scripts/ci.ps1
+```
+
+### Publish a single artifact (API + SPA in one folder)
+```powershell
+pwsh -NoLogo -NoProfile -File ./scripts/publish.ps1
+```
+Default output: `artifacts/publish/app`
+
+### Run published app (API serves SPA)
+```powershell
+pwsh -NoLogo -NoProfile -File ./scripts/run.ps1
+```
+
+## Local Secrets Placeholder Setup (for `publish.ps1` / `run.ps1`)
+Copy the template and replace placeholders:
+
+```powershell
+Copy-Item ./scripts/secrets.example.ps1 ./scripts/secrets.local.ps1
+```
+
+Required by `scripts/run.ps1`:
+- `Google__ClientId`
+- `Jwt__SigningKey`
+- `ASPNETCORE_Kestrel__Certificates__Default__Path`
+- `ASPNETCORE_Kestrel__Certificates__Default__Password`
+
+Optional for web build/publish (but needed for real Google sign-in in the SPA):
+- `VITE_GOOGLE_CLIENT_ID`
+
+### HTTPS cert (example, cross-platform)
+```powershell
+New-Item -ItemType Directory -Force ./.certs | Out-Null
+dotnet dev-certs https -ep ./.certs/webapptemplate-dev.pfx -p "changeit"
+```
+Then set the matching path/password in `scripts/secrets.local.ps1`.
+
+## GitHub Actions
+Workflow: `.github/workflows/build-and-ci.yml`
+
+- Runs on `pull_request`
+- Runs on `push` to `main`
+- Matrix: `ubuntu-latest`, `windows-latest`
+- Executes:
+  - `scripts/build.ps1`
+  - `scripts/ci.ps1`
+
+Placeholder secret names for future publish/run workflows:
+- `GOOGLE_OAUTH_WEB_CLIENT_ID`
+- `JWT_SIGNING_KEY`
+- `HTTPS_CERT_PFX_BASE64`
+- `HTTPS_CERT_PASSWORD`
 
 ## API endpoints
 ### Auth
