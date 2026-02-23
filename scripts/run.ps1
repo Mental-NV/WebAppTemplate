@@ -4,6 +4,7 @@
 param(
     [string]$Configuration = "Release",
     [string]$PublishOutputDir = "artifacts/publish/app",
+    [string]$DbFilePath = "",
     [switch]$NoPublish,
     [string]$SecretsFile = "scripts/secrets.local.ps1",
     [string]$Environment = "Development",
@@ -104,9 +105,30 @@ Write-Host "`n[$step/$totalSteps] Configuring runtime environment..." -Foregroun
 [Environment]::SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", $Environment)
 [Environment]::SetEnvironmentVariable("ASPNETCORE_URLS", "http://localhost:$HttpPort;https://localhost:$HttpsPort")
 
+$connectionStringFromEnv = [Environment]::GetEnvironmentVariable("ConnectionStrings__Default")
+if ([string]::IsNullOrWhiteSpace($connectionStringFromEnv)) {
+    $resolvedDbFilePath = $DbFilePath
+    if ([string]::IsNullOrWhiteSpace($resolvedDbFilePath)) {
+        $stableAppDataDir = Get-StablePerUserAppDataDir -AppName "WebAppTemplate"
+        $resolvedDbFilePath = Join-Path -Path (Join-Path -Path $stableAppDataDir -ChildPath "AppData") -ChildPath "app.db"
+    }
+    elseif (-not [System.IO.Path]::IsPathRooted($resolvedDbFilePath)) {
+        $resolvedDbFilePath = Join-Path -Path $paths.ProjectRoot -ChildPath $resolvedDbFilePath
+    }
+
+    $dbDir = Split-Path -Parent $resolvedDbFilePath
+    if (-not [string]::IsNullOrWhiteSpace($dbDir)) {
+        New-Item -ItemType Directory -Path $dbDir -Force | Out-Null
+    }
+
+    [Environment]::SetEnvironmentVariable("ConnectionStrings__Default", "Data Source=$resolvedDbFilePath")
+    $connectionStringFromEnv = [Environment]::GetEnvironmentVariable("ConnectionStrings__Default")
+}
+
 Write-Host "ASPNETCORE_ENVIRONMENT=$Environment" -ForegroundColor Gray
 Write-Host "ASPNETCORE_URLS=$([Environment]::GetEnvironmentVariable('ASPNETCORE_URLS'))" -ForegroundColor Gray
 Write-Host "HTTPS cert path=$certPath" -ForegroundColor Gray
+Write-Host "ConnectionStrings__Default=$connectionStringFromEnv" -ForegroundColor Gray
 
 $step++
 Write-Host "`n[$step/$totalSteps] Starting published app..." -ForegroundColor Yellow

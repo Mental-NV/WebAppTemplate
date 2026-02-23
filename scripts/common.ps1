@@ -57,6 +57,26 @@ function Get-PlatformLabel {
     return [string]$PSVersionTable.Platform
 }
 
+function Get-StablePerUserAppDataDir {
+    param(
+        [Parameter(Mandatory)]
+        [string]$AppName
+    )
+
+    $baseDir = [Environment]::GetFolderPath([System.Environment+SpecialFolder]::LocalApplicationData)
+    if ([string]::IsNullOrWhiteSpace($baseDir)) {
+        $baseDir = [Environment]::GetEnvironmentVariable("HOME")
+    }
+    if ([string]::IsNullOrWhiteSpace($baseDir)) {
+        $baseDir = [Environment]::GetEnvironmentVariable("USERPROFILE")
+    }
+    if ([string]::IsNullOrWhiteSpace($baseDir)) {
+        throw "Could not determine a stable per-user application data directory."
+    }
+
+    return (Join-Path -Path $baseDir -ChildPath $AppName)
+}
+
 function Format-CommandForDisplay {
     param(
         [Parameter(Mandatory)]
