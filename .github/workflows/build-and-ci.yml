@@ -49,6 +49,10 @@ jobs:
   ci:
     name: CI Checks (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    env:
+      Google__ClientId: ci-test.apps.googleusercontent.com
+      Jwt__SigningKey: ci_test_signing_key_32_chars_minimum_123456
+      VITE_GOOGLE_CLIENT_ID: ci-test.apps.googleusercontent.com
     strategy:
       fail-fast: false
       matrix:
