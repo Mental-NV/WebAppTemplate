@@ -6,47 +6,38 @@ if ($LASTEXITCODE -ne 0) {
   throw "dotnet user-secrets failed. Output: $lines"
 }
 
-$loaded = 0
+$secrets = @{}
 
 foreach ($line in $lines) {
   if ([string]::IsNullOrWhiteSpace($line)) { continue }
 
-  # Expected: Key:SubKey = value (value may contain '=' so capture the rest)
   if ($line -match '^\s*(?<key>[^=]+?)\s*=\s*(?<value>.*)\s*$') {
-    $key = $Matches['key'].Trim()
-    $value = $Matches['value']  # do NOT Trim() to preserve leading/trailing spaces if any
+    $secrets[($Matches['key'].Trim() -replace ':', '__')] = $Matches['value']
+  }
+}
 
-    # ASP.NET Core env-var mapping: ':' becomes '__'
-    $envName = $key -replace ':', '__'
+$requiredEnvNames = @(
+  "Jwt__SigningKey",
+  "Google__ClientId",
+  "ASPNETCORE_Kestrel__Certificates__Default__Path",
+  "ASPNETCORE_Kestrel__Certificates__Default__Password"
+)
 
-    Set-Item -Path ("Env:{0}" -f $envName) -Value $value
-    Write-Host "Loaded user-secret: $envName"
+$loaded = 0
+foreach ($envName in $requiredEnvNames) {
+  if (-not [string]::IsNullOrWhiteSpace($secrets[$envName])) {
+    Set-Item -Path ("Env:{0}" -f $envName) -Value $secrets[$envName]
     $loaded++
   }
-  else {
-    Write-Warning "Skipping unrecognized line: $line"
-  }
 }
 
-Write-Host "Loaded $loaded environment variable(s) from user-secrets."
-
-# Normalize a few aliases so scripts/run.ps1 sees the expected env names.
-# Keep this file safe to commit: no real secret values are stored here.
-
+$initializedViteGoogleClientId = $false
 if ([string]::IsNullOrWhiteSpace($env:VITE_GOOGLE_CLIENT_ID) -and -not [string]::IsNullOrWhiteSpace($env:Google__ClientId)) {
-  $env:VITE_GOOGLE_CLIENT_ID = $env:Google__ClientId
+  Set-Item -Path "Env:VITE_GOOGLE_CLIENT_ID" -Value $env:Google__ClientId
+  $initializedViteGoogleClientId = $true
 }
 
-# Allow user-secrets keys without ASPNETCORE_ prefix and map them to the runtime env names used by run.ps1.
-if ([string]::IsNullOrWhiteSpace($env:ASPNETCORE_Kestrel__Certificates__Default__Path) -and -not [string]::IsNullOrWhiteSpace($env:Kestrel__Certificates__Default__Path)) {
-  $env:ASPNETCORE_Kestrel__Certificates__Default__Path = $env:Kestrel__Certificates__Default__Path
-}
-
-if ([string]::IsNullOrWhiteSpace($env:ASPNETCORE_Kestrel__Certificates__Default__Password) -and -not [string]::IsNullOrWhiteSpace($env:Kestrel__Certificates__Default__Password)) {
-  $env:ASPNETCORE_Kestrel__Certificates__Default__Password = $env:Kestrel__Certificates__Default__Password
-}
-
-# Non-secret convenience default for local cert path (only if not already provided).
-if ([string]::IsNullOrWhiteSpace($env:ASPNETCORE_Kestrel__Certificates__Default__Path)) {
-  $env:ASPNETCORE_Kestrel__Certificates__Default__Path = ".certs/webapptemplate-dev.pfx"
+Write-Host "Loaded $loaded required environment variable(s) from dotnet user-secrets."
+if ($initializedViteGoogleClientId) {
+  Write-Host "Initialized VITE_GOOGLE_CLIENT_ID from Google__ClientId."
 }
