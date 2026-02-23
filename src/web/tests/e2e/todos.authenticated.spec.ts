@@ -16,11 +16,12 @@ test('authenticated user can create, toggle, and delete a todo', async ({ page }
   await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
   await initialTodosLoad
 
-  const createResponse = page.waitForResponse((response) =>
-    isTodosCreatePost(response.url(), response.request().method()) && response.status() === 201)
+  const createResponsePromise = page.waitForResponse((response) =>
+    isTodosCreatePost(response.url(), response.request().method()))
   await page.getByPlaceholder('New todo title...').fill(title)
   await page.getByRole('button', { name: 'Add' }).click()
-  await createResponse
+  const createResponse = await createResponsePromise
+  expect(createResponse.status()).toBe(201)
 
   const row = page.locator('li', { hasText: title })
   await expect(row).toBeVisible()
