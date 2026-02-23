@@ -300,6 +300,106 @@ function Initialize-HttpsCertificateMaterialization {
     }
 }
 
+function Get-FileSha256Hex {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path
+    )
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return $null
+    }
+
+    return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
+}
+
+function Get-WebDependencyStateFilePath {
+    param(
+        [Parameter(Mandatory)]
+        [string]$WebDir
+    )
+
+    return (Join-Path -Path (Join-Path -Path $WebDir -ChildPath "node_modules") -ChildPath ".web-deps-state.json")
+}
+
+function Get-WebDependencyFingerprint {
+    param(
+        [Parameter(Mandatory)]
+        [string]$WebDir,
+
+        [Parameter(Mandatory)]
+        [string]$LockFilePath
+    )
+
+    $packageJsonPath = Join-Path -Path $WebDir -ChildPath "package.json"
+    if (-not (Test-Path -LiteralPath $packageJsonPath)) {
+        throw "package.json not found: $packageJsonPath"
+    }
+
+    $nodeVersion = (& node -v).Trim()
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to read Node.js version (node -v)."
+    }
+
+    $npmVersion = (& npm -v).Trim()
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to read npm version (npm -v)."
+    }
+
+    return [ordered]@{
+        PackageJsonSha256 = Get-FileSha256Hex -Path $packageJsonPath
+        PackageLockSha256 = Get-FileSha256Hex -Path $LockFilePath
+        NodeVersion = $nodeVersion
+        NpmVersion = $npmVersion
+        Platform = Get-PlatformLabel
+    }
+}
+
+function Try-ReadWebDependencyState {
+    param(
+        [Parameter(Mandatory)]
+        [string]$StateFilePath
+    )
+
+    if (-not (Test-Path -LiteralPath $StateFilePath)) {
+        return $null
+    }
+
+    try {
+        return (Get-Content -LiteralPath $StateFilePath -Raw | ConvertFrom-Json)
+    }
+    catch {
+        Write-Host "Web dependency state file is invalid; forcing install: $StateFilePath" -ForegroundColor Yellow
+        return $null
+    }
+}
+
+function Write-WebDependencyState {
+    param(
+        [Parameter(Mandatory)]
+        [string]$StateFilePath,
+
+        [Parameter(Mandatory)]
+        [System.Collections.IDictionary]$Fingerprint
+    )
+
+    $stateDir = Split-Path -Parent $StateFilePath
+    if (-not [string]::IsNullOrWhiteSpace($stateDir)) {
+        New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
+    }
+
+    $state = [ordered]@{
+        packageJsonSha256 = $Fingerprint.PackageJsonSha256
+        packageLockSha256 = $Fingerprint.PackageLockSha256
+        nodeVersion = $Fingerprint.NodeVersion
+        npmVersion = $Fingerprint.NpmVersion
+        platform = $Fingerprint.Platform
+        updatedAtUtc = [DateTime]::UtcNow.ToString("o")
+    }
+
+    ($state | ConvertTo-Json -Depth 4) | Set-Content -LiteralPath $StateFilePath
+}
+
 function Install-WebDependencies {
     param(
         [Parameter(Mandatory)]
@@ -311,25 +411,62 @@ function Install-WebDependencies {
         [switch]$UseNpmInstall
     )
 
+    $localInstallArgs = @("install", "--prefer-offline", "--no-audit", "--no-fund")
+
     if ($UseNpmInstall.IsPresent) {
-        Invoke-External -FilePath "npm" -Arguments @("install") -WorkingDirectory $WebDir -StepName "npm install"
+        Invoke-External -FilePath "npm" -Arguments $localInstallArgs -WorkingDirectory $WebDir -StepName "npm install"
         return
     }
 
     $effectiveCi = Get-EffectiveCiMode
 
-    if (-not $effectiveCi) {
-        Invoke-External -FilePath "npm" -Arguments @("install") -WorkingDirectory $WebDir -StepName "npm install"
+    if ($effectiveCi) {
+        Write-Host "CI detected; running npm ci." -ForegroundColor Gray
+        if (Test-Path -LiteralPath $LockFilePath) {
+            Invoke-External -FilePath "npm" -Arguments @("ci") -WorkingDirectory $WebDir -StepName "npm ci"
+            return
+        }
+
+        Write-Host "package-lock.json not found; falling back to npm install." -ForegroundColor Yellow
+        Invoke-External -FilePath "npm" -Arguments $localInstallArgs -WorkingDirectory $WebDir -StepName "npm install"
         return
     }
 
-    if (Test-Path -LiteralPath $LockFilePath) {
-        Invoke-External -FilePath "npm" -Arguments @("ci") -WorkingDirectory $WebDir -StepName "npm ci"
-        return
+    $nodeModulesDir = Join-Path -Path $WebDir -ChildPath "node_modules"
+    $stateFilePath = Get-WebDependencyStateFilePath -WebDir $WebDir
+
+    if (Test-Path -LiteralPath $nodeModulesDir) {
+        $savedState = Try-ReadWebDependencyState -StateFilePath $stateFilePath
+        if ($null -ne $savedState) {
+            $currentFingerprint = Get-WebDependencyFingerprint -WebDir $WebDir -LockFilePath $LockFilePath
+            $isMatch =
+                [string]$savedState.packageJsonSha256 -eq [string]$currentFingerprint.PackageJsonSha256 -and
+                [string]$savedState.packageLockSha256 -eq [string]$currentFingerprint.PackageLockSha256 -and
+                [string]$savedState.nodeVersion -eq [string]$currentFingerprint.NodeVersion -and
+                [string]$savedState.npmVersion -eq [string]$currentFingerprint.NpmVersion -and
+                [string]$savedState.platform -eq [string]$currentFingerprint.Platform
+
+            if ($isMatch) {
+                Write-Host "Web dependencies unchanged; skipping install." -ForegroundColor Gray
+                return
+            }
+
+            Write-Host "Web dependencies changed (package/tooling); running npm install." -ForegroundColor Gray
+        }
+        else {
+            Write-Host "Web dependency state missing/invalid; running npm install." -ForegroundColor Gray
+        }
+    }
+    else {
+        Write-Host "node_modules not found; running npm install." -ForegroundColor Gray
     }
 
-    Write-Host "package-lock.json not found; falling back to npm install." -ForegroundColor Yellow
-    Invoke-External -FilePath "npm" -Arguments @("install") -WorkingDirectory $WebDir -StepName "npm install"
+    Invoke-External -FilePath "npm" -Arguments $localInstallArgs -WorkingDirectory $WebDir -StepName "npm install"
+
+    $postInstallFingerprint = Get-WebDependencyFingerprint -WebDir $WebDir -LockFilePath $LockFilePath
+    Write-WebDependencyState -StateFilePath $stateFilePath -Fingerprint $postInstallFingerprint
+    return
+
 }
 
 function Sync-DirectoryContents {
