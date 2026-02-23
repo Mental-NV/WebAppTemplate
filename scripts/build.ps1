@@ -3,11 +3,7 @@
 
 param(
     [string]$Configuration = "Debug",
-    [switch]$NoRestore,
-    [switch]$NoWebInstall,
     [switch]$UseNpmInstall,
-    [switch]$SkipCopyToWwwroot,
-    [switch]$NoCleanWwwroot,
     [switch]$CI
 )
 
@@ -22,7 +18,7 @@ $platform = Get-PlatformLabel
 
 Write-Host "Building WebAppTemplate..." -ForegroundColor Cyan
 Write-Host "Platform: $platform | CI: $effectiveCi | Configuration: $Configuration" -ForegroundColor Gray
-Write-Host "Restore: $(-not $NoRestore) | Web install: $(-not $NoWebInstall) | Copy to wwwroot: $(-not $SkipCopyToWwwroot)" -ForegroundColor Gray
+Write-Host "This stage restores dependencies, builds solution + web, and syncs web assets into API wwwroot." -ForegroundColor Gray
 
 $step = 0
 $totalSteps = 6
@@ -34,33 +30,21 @@ Assert-CommandAvailable -Name "npm"
 
 $step++
 Write-Host "`n[$step/$totalSteps] Restoring .NET dependencies..." -ForegroundColor Yellow
-if ($NoRestore.IsPresent) {
-    Write-Host "Skipping dotnet restore (-NoRestore)." -ForegroundColor DarkGray
-}
-else {
-    Invoke-External -FilePath "dotnet" -Arguments @("restore", $paths.SolutionPath) -WorkingDirectory $paths.ProjectRoot -StepName "dotnet restore"
-}
+Invoke-External -FilePath "dotnet" -Arguments @("restore", $paths.SolutionPath) -WorkingDirectory $paths.ProjectRoot -StepName "dotnet restore"
 
 $step++
 Write-Host "`n[$step/$totalSteps] Installing web dependencies..." -ForegroundColor Yellow
-if ($NoWebInstall.IsPresent) {
-    Write-Host "Skipping npm install/ci (-NoWebInstall)." -ForegroundColor DarkGray
-}
-else {
-    Install-WebDependencies -WebDir $paths.WebDir -LockFilePath $paths.WebPackageLockPath -UseNpmInstall:$UseNpmInstall
-}
+Install-WebDependencies -WebDir $paths.WebDir -LockFilePath $paths.WebPackageLockPath -UseNpmInstall:$UseNpmInstall
 
 $step++
-Write-Host "`n[$step/$totalSteps] Building API..." -ForegroundColor Yellow
-$apiBuildArgs = @(
+Write-Host "`n[$step/$totalSteps] Building solution..." -ForegroundColor Yellow
+$solutionBuildArgs = @(
     "build",
-    $paths.ApiProjectPath,
-    "--configuration", $Configuration
+    $paths.SolutionPath,
+    "--configuration", $Configuration,
+    "--no-restore"
 )
-if (-not $NoRestore.IsPresent) {
-    $apiBuildArgs += "--no-restore"
-}
-Invoke-External -FilePath "dotnet" -Arguments $apiBuildArgs -WorkingDirectory $paths.ProjectRoot -StepName "API build"
+Invoke-External -FilePath "dotnet" -Arguments $solutionBuildArgs -WorkingDirectory $paths.ProjectRoot -StepName "Solution build"
 
 $step++
 Write-Host "`n[$step/$totalSteps] Building Web..." -ForegroundColor Yellow
@@ -68,22 +52,17 @@ Invoke-External -FilePath "npm" -Arguments @("run", "build") -WorkingDirectory $
 
 $step++
 Write-Host "`n[$step/$totalSteps] Syncing web output to API wwwroot..." -ForegroundColor Yellow
-if ($SkipCopyToWwwroot.IsPresent) {
-    Write-Host "Skipping copy to wwwroot (-SkipCopyToWwwroot)." -ForegroundColor DarkGray
+if (-not (Test-Path -LiteralPath $paths.WebDistDir)) {
+    throw "Web build output was not found at '$($paths.WebDistDir)'."
 }
-else {
-    if (-not (Test-Path -LiteralPath $paths.WebDistDir)) {
-        throw "Web build output was not found at '$($paths.WebDistDir)'."
-    }
 
-    Sync-DirectoryContents `
-        -SourceDir $paths.WebDistDir `
-        -DestinationDir $paths.ApiWwwRootDir `
-        -CleanDestination:(-not $NoCleanWwwroot.IsPresent) `
-        -PreserveNames @(".gitkeep")
+Sync-DirectoryContents `
+    -SourceDir $paths.WebDistDir `
+    -DestinationDir $paths.ApiWwwRootDir `
+    -CleanDestination `
+    -PreserveNames @(".gitkeep")
 
-    Write-Host "Copied web files to $($paths.ApiWwwRootDir)" -ForegroundColor Green
-}
+Write-Host "Copied web files to $($paths.ApiWwwRootDir)" -ForegroundColor Green
 
 Write-Host "`nBuild complete." -ForegroundColor Green
-Write-Host "Run 'dotnet run' in src/api or use scripts/run.ps1 for published app execution." -ForegroundColor Gray
+Write-Host "Next stages: scripts/ci.ps1 -> scripts/publish.ps1 -> scripts/run.ps1" -ForegroundColor Gray

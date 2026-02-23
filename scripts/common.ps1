@@ -159,6 +159,65 @@ function Get-RepoPaths {
     }
 }
 
+function Resolve-ProjectRelativePath {
+    param(
+        [Parameter(Mandatory)]
+        [string]$ProjectRoot,
+
+        [Parameter(Mandatory)]
+        [string]$Path
+    )
+
+    if ([System.IO.Path]::IsPathRooted($Path)) {
+        return $Path
+    }
+
+    return (Join-Path -Path $ProjectRoot -ChildPath $Path)
+}
+
+function Get-PublishArtifactPaths {
+    param(
+        [Parameter(Mandatory)]
+        [string]$ProjectRoot,
+
+        [Parameter(Mandatory)]
+        [string]$OutputDir
+    )
+
+    $resolvedOutputDir = Resolve-ProjectRelativePath -ProjectRoot $ProjectRoot -Path $OutputDir
+    $publishWwwRootDir = Join-Path -Path $resolvedOutputDir -ChildPath "wwwroot"
+
+    return [pscustomobject]@{
+        OutputDir        = $resolvedOutputDir
+        PublishWwwRootDir = $publishWwwRootDir
+        ApiDllPath       = Join-Path -Path $resolvedOutputDir -ChildPath "Api.dll"
+        SpaIndexPath     = Join-Path -Path $publishWwwRootDir -ChildPath "index.html"
+    }
+}
+
+function Assert-PublishArtifact {
+    param(
+        [Parameter(Mandatory)]
+        [string]$PublishOutputDir,
+
+        [Parameter(Mandatory)]
+        [string]$ApiDllPath,
+
+        [Parameter(Mandatory)]
+        [string]$SpaIndexPath
+    )
+
+    if (-not (Test-Path -LiteralPath $PublishOutputDir)) {
+        throw "Publish output directory not found: $PublishOutputDir"
+    }
+    if (-not (Test-Path -LiteralPath $ApiDllPath)) {
+        throw "Publish validation failed: Api.dll was not found at '$ApiDllPath'."
+    }
+    if (-not (Test-Path -LiteralPath $SpaIndexPath)) {
+        throw "Publish validation failed: SPA index.html was not found at '$SpaIndexPath'."
+    }
+}
+
 function Import-OptionalSecretsFile {
     param(
         [Parameter(Mandatory)]
@@ -168,10 +227,7 @@ function Import-OptionalSecretsFile {
         [string]$SecretsFile
     )
 
-    $resolvedPath = $SecretsFile
-    if (-not [System.IO.Path]::IsPathRooted($resolvedPath)) {
-        $resolvedPath = Join-Path -Path $ProjectRoot -ChildPath $resolvedPath
-    }
+    $resolvedPath = Resolve-ProjectRelativePath -ProjectRoot $ProjectRoot -Path $SecretsFile
 
     if (Test-Path -LiteralPath $resolvedPath) {
         Write-Host "Loading secrets from $resolvedPath" -ForegroundColor Gray
@@ -216,10 +272,7 @@ function Initialize-HttpsCertificateMaterialization {
         throw "HTTPS certificate materialization requires both '$Base64EnvVarName' and '$PasswordEnvVarName'."
     }
 
-    $targetPath = $DefaultRelativeOutputPath
-    if (-not [System.IO.Path]::IsPathRooted($targetPath)) {
-        $targetPath = Join-Path -Path $ProjectRoot -ChildPath $targetPath
-    }
+    $targetPath = Resolve-ProjectRelativePath -ProjectRoot $ProjectRoot -Path $DefaultRelativeOutputPath
 
     $targetDir = Split-Path -Parent $targetPath
     if (-not [string]::IsNullOrWhiteSpace($targetDir)) {
