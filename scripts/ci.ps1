@@ -10,6 +10,7 @@ param(
     [switch]$SkipApiUnitTests,
     [switch]$SkipApiIntegrationTests,
     [switch]$SkipWebTests,
+    [string]$SecretsFile = "scripts/secrets.local.ps1",
     [switch]$CI
 )
 
@@ -27,12 +28,20 @@ Write-Host "Platform: $platform | CI: $effectiveCi | Configuration: $Configurati
 Write-Host "Restore: $(-not $NoRestore) | Build: $(-not $NoBuild) | Web install: $(-not $NoWebInstall)" -ForegroundColor Gray
 
 $step = 0
-$totalSteps = 7
+$totalSteps = 9
 
 $step++
 Write-Host "`n[$step/$totalSteps] Preflight checks..." -ForegroundColor Yellow
 Assert-CommandAvailable -Name "dotnet"
 Assert-CommandAvailable -Name "npm"
+
+$step++
+Write-Host "`n[$step/$totalSteps] Loading optional secrets..." -ForegroundColor Yellow
+[void](Import-OptionalSecretsFile -ProjectRoot $paths.ProjectRoot -SecretsFile $SecretsFile)
+
+$step++
+Write-Host "`n[$step/$totalSteps] Materializing optional HTTPS certificate..." -ForegroundColor Yellow
+[void](Initialize-HttpsCertificateMaterialization -ProjectRoot $paths.ProjectRoot)
 
 $step++
 Write-Host "`n[$step/$totalSteps] Restoring .NET dependencies..." -ForegroundColor Yellow

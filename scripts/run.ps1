@@ -41,6 +41,7 @@ $totalSteps = 6
 $step++
 Write-Host "`n[$step/$totalSteps] Loading secrets..." -ForegroundColor Yellow
 [void](Import-OptionalSecretsFile -ProjectRoot $paths.ProjectRoot -SecretsFile $SecretsFile)
+[void](Initialize-HttpsCertificateMaterialization -ProjectRoot $paths.ProjectRoot -Required)
 
 $step++
 Write-Host "`n[$step/$totalSteps] Preflight checks..." -ForegroundColor Yellow

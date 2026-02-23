@@ -23,20 +23,19 @@ This template uses:
 ### Configure Google OAuth client
 Create a Google OAuth client (Google Cloud Console) and add your dev origin:
 - Authorized JavaScript origins: `http://localhost:5173`
-- If you run the built SPA from the API (`http://localhost:5000` / `https://localhost:5001`), also add:
-  - `http://localhost:5000`
+- If you run the built SPA from the API, also add:
   - `https://localhost:5001`
 
 Then set the client id via the secrets-loading flow below (`dotnet user-secrets`), which also initializes `VITE_GOOGLE_CLIENT_ID` for script-driven build/run.
 
 ## Secrets Loading (`dotnet user-secrets` -> env vars)
-`scripts/secrets.local.ps1` reads `dotnet user-secrets list` from `src/api`, parses the output, and exports the env vars required by `scripts/publish.ps1` / `scripts/run.ps1`.
+`scripts/secrets.local.ps1` reads `dotnet user-secrets list` from `src/api`, parses the output, and exports the env vars required by `scripts/publish.ps1` / `scripts/run.ps1`. For HTTPS, the source-of-truth secrets are `HTTPS_CERT_PFX_BASE64` and `HTTPS_CERT_PASSWORD`; scripts derive/materialize the ASP.NET Kestrel certificate env vars from them.
 
 Required secrets (stored in `dotnet user-secrets`):
 - `Jwt__SigningKey`
 - `Google__ClientId`
-- `ASPNETCORE_Kestrel__Certificates__Default__Path`
-- `ASPNETCORE_Kestrel__Certificates__Default__Password`
+- `HTTPS_CERT_PASSWORD`
+- `HTTPS_CERT_PFX_BASE64`
 
 Special case:
 - `VITE_GOOGLE_CLIENT_ID` is initialized automatically from `Google__ClientId`
@@ -46,16 +45,31 @@ Set them (API project already has a `UserSecretsId`):
 cd src/api
 dotnet user-secrets set "Jwt__SigningKey" "replace-with-a-real-signing-key-at-least-32-chars"
 dotnet user-secrets set "Google__ClientId" "your-google-client-id.apps.googleusercontent.com"
-dotnet user-secrets set "ASPNETCORE_Kestrel__Certificates__Default__Path" ".certs/webapptemplate-dev.pfx"
-dotnet user-secrets set "ASPNETCORE_Kestrel__Certificates__Default__Password" "changeit"
+dotnet user-secrets set "HTTPS_CERT_PASSWORD" "changeit"
 ```
 
-HTTPS cert example (matches the path/password above):
+HTTPS cert example (materialized by scripts to `.certs/webapptemplate-dev.pfx`):
 ```powershell
 cd ../..
 New-Item -ItemType Directory -Force ./.certs | Out-Null
 dotnet dev-certs https -ep ./.certs/webapptemplate-dev.pfx -p "changeit"
 ```
+
+Set `HTTPS_CERT_PFX_BASE64` from the exported `.pfx` (PowerShell):
+```powershell
+$bytes = [System.IO.File]::ReadAllBytes((Resolve-Path ./.certs/webapptemplate-dev.pfx))
+$b64 = [Convert]::ToBase64String($bytes)
+cd src/api
+dotnet user-secrets set "HTTPS_CERT_PFX_BASE64" $b64
+```
+
+CI/local automation materializes the certificate file from:
+- `HTTPS_CERT_PFX_BASE64` (base64-encoded `.pfx`)
+- `HTTPS_CERT_PASSWORD`
+
+`scripts/ci.ps1` (when secrets are available) and `scripts/run.ps1` materialize to `.certs/webapptemplate-dev.pfx` and initialize:
+- `ASPNETCORE_Kestrel__Certificates__Default__Path`
+- `ASPNETCORE_Kestrel__Certificates__Default__Password`
 
 If you run the web app directly with `npm run dev`, also provide `VITE_GOOGLE_CLIENT_ID` to the shell (or create `src/web/.env.local`). `scripts/publish.ps1` and `scripts/run.ps1` load it automatically via `scripts/secrets.local.ps1`.
 
@@ -65,7 +79,7 @@ If you run the web app directly with `npm run dev`, also provide `VITE_GOOGLE_CL
 cd src/api
 dotnet run
 ```
-Swagger (dev only): http://localhost:5000/swagger
+Swagger (dev only): https://localhost:5001/swagger
 
 ### 2) Frontend
 ```bash
@@ -75,7 +89,7 @@ npm run dev
 ```
 Vite dev server: http://localhost:5173
 
-If you are serving the SPA from the API on port `5000/5001`, build the frontend after changing `src/web/.env.local`:
+If you are serving the SPA from the API on `https://localhost:5001`, build the frontend after changing `src/web/.env.local`:
 ```bash
 cd src/web
 npm run build
@@ -101,6 +115,10 @@ pwsh -NoLogo -NoProfile -File ./scripts/build.ps1
 ```powershell
 pwsh -NoLogo -NoProfile -File ./scripts/ci.ps1
 ```
+CI HTTPS cert materialization inputs (required only when materializing the certificate in CI):
+- `HTTPS_CERT_PFX_BASE64`
+- `HTTPS_CERT_PASSWORD`
+- Optional local secrets loader (default): `scripts/secrets.local.ps1` (`dotnet user-secrets`)
 
 ### Publish a single artifact (API + SPA in one folder)
 ```powershell
@@ -112,6 +130,7 @@ Default output: `artifacts/publish/app`
 ```powershell
 pwsh -NoLogo -NoProfile -File ./scripts/run.ps1
 ```
+Published app HTTPS endpoint: `https://localhost:5001`
 
 ## GitHub Actions
 Workflow: `.github/workflows/build-and-ci.yml`
@@ -122,10 +141,15 @@ Workflow: `.github/workflows/build-and-ci.yml`
 - Executes:
   - `scripts/build.ps1`
   - `scripts/ci.ps1`
+- Additional Ubuntu smoke job (when required secrets are configured):
+  - Materializes HTTPS cert from `HTTPS_CERT_PFX_BASE64` + `HTTPS_CERT_PASSWORD`
+  - `scripts/publish.ps1`
+  - `scripts/run.ps1 -NoPublish`
+  - Probes `https://localhost:5001/`
 
-Placeholder secret names for future publish/run workflows:
-- `GOOGLE_OAUTH_WEB_CLIENT_ID`
-- `JWT_SIGNING_KEY`
+GitHub Actions secrets used by publish/run smoke job:
+- `GOOGLE__CLIENTID` (reused for both `Google__ClientId` and `VITE_GOOGLE_CLIENT_ID`)
+- `JWT__SIGNINGKEY`
 - `HTTPS_CERT_PFX_BASE64`
 - `HTTPS_CERT_PASSWORD`
 

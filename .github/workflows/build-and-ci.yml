@@ -38,9 +38,9 @@ jobs:
           cache: npm
           cache-dependency-path: src/web/package-lock.json
 
-      # Placeholder secrets for future publish/run workflows (not required in this workflow):
-      # GOOGLE_OAUTH_WEB_CLIENT_ID
-      # JWT_SIGNING_KEY
+      # Placeholder secrets for publish/run smoke job (not required in this workflow):
+      # GOOGLE__CLIENTID
+      # JWT__SIGNINGKEY
       # HTTPS_CERT_PFX_BASE64
       # HTTPS_CERT_PASSWORD
       - name: Build
@@ -76,3 +76,116 @@ jobs:
 
       - name: CI checks
         run: ./scripts/ci.ps1 -Configuration Release -CI
+
+  publish-run:
+    name: Publish + Run Smoke (ubuntu-latest)
+    runs-on: ubuntu-latest
+    needs: [build, ci]
+    if: ${{ secrets.GOOGLE__CLIENTID != '' && secrets.JWT__SIGNINGKEY != '' && secrets.HTTPS_CERT_PFX_BASE64 != '' && secrets.HTTPS_CERT_PASSWORD != '' }}
+    env:
+      Google__ClientId: ${{ secrets.GOOGLE__CLIENTID }}
+      Jwt__SigningKey: ${{ secrets.JWT__SIGNINGKEY }}
+      VITE_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE__CLIENTID }}
+      HTTPS_CERT_PFX_BASE64: ${{ secrets.HTTPS_CERT_PFX_BASE64 }}
+      HTTPS_CERT_PASSWORD: ${{ secrets.HTTPS_CERT_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+
+      - name: Materialize HTTPS certificate
+        run: |
+          . ./scripts/common.ps1
+          $paths = Get-RepoPaths
+          $result = Initialize-HttpsCertificateMaterialization -ProjectRoot $paths.ProjectRoot -Required
+          if ($null -eq $result) {
+            throw "HTTPS certificate materialization failed: HTTPS_CERT_PFX_BASE64 was not available."
+          }
+
+          Add-Content -Path $env:GITHUB_ENV -Value "ASPNETCORE_Kestrel__Certificates__Default__Path=$($result.Path)"
+          Add-Content -Path $env:GITHUB_ENV -Value "ASPNETCORE_Kestrel__Certificates__Default__Password=$($result.Password)"
+
+      - name: Publish
+        run: ./scripts/publish.ps1 -Configuration Release -CI
+
+      - name: Run HTTPS smoke test
+        run: |
+          $artifactDir = Join-Path -Path $PWD -ChildPath "artifacts"
+          New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
+
+          $stdoutLog = Join-Path -Path $artifactDir -ChildPath "run-smoke.stdout.log"
+          $stderrLog = Join-Path -Path $artifactDir -ChildPath "run-smoke.stderr.log"
+          $proc = $null
+          $uri = "https://localhost:5001/"
+
+          try {
+            $proc = Start-Process `
+              -FilePath "pwsh" `
+              -ArgumentList @(
+                "-NoLogo",
+                "-NoProfile",
+                "-File", "./scripts/run.ps1",
+                "-Configuration", "Release",
+                "-PublishOutputDir", "artifacts/publish/app",
+                "-NoPublish",
+                "-CI"
+              ) `
+              -WorkingDirectory $PWD `
+              -PassThru `
+              -RedirectStandardOutput $stdoutLog `
+              -RedirectStandardError $stderrLog
+
+            $isReady = $false
+            for ($attempt = 1; $attempt -le 30; $attempt++) {
+              if ($proc.HasExited) {
+                break
+              }
+
+              try {
+                $response = Invoke-WebRequest -Uri $uri -SkipCertificateCheck -TimeoutSec 5
+                if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 400) {
+                  $isReady = $true
+                  break
+                }
+              }
+              catch {
+                Start-Sleep -Seconds 2
+              }
+            }
+
+            if (-not $isReady) {
+              if ($null -ne $proc -and $proc.HasExited) {
+                Write-Host "run.ps1 exited early with code $($proc.ExitCode)." -ForegroundColor Red
+              }
+
+              if (Test-Path -LiteralPath $stdoutLog) {
+                Write-Host "`n--- run smoke stdout ---"
+                Get-Content -LiteralPath $stdoutLog
+              }
+              if (Test-Path -LiteralPath $stderrLog) {
+                Write-Host "`n--- run smoke stderr ---"
+                Get-Content -LiteralPath $stderrLog
+              }
+
+              throw "HTTPS smoke test failed: $uri"
+            }
+
+            Write-Host "HTTPS smoke test passed: $uri" -ForegroundColor Green
+          }
+          finally {
+            if ($null -ne $proc -and -not $proc.HasExited) {
+              Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+            }
+          }
