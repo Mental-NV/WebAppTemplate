@@ -19,8 +19,8 @@ foreach ($line in $lines) {
 $requiredEnvNames = @(
   "Jwt__SigningKey",
   "Google__ClientId",
-  "ASPNETCORE_Kestrel__Certificates__Default__Path",
-  "ASPNETCORE_Kestrel__Certificates__Default__Password"
+  "HTTPS_CERT_PASSWORD",
+  "HTTPS_CERT_PFX_BASE64"
 )
 
 $loaded = 0
@@ -37,7 +37,20 @@ if ([string]::IsNullOrWhiteSpace($env:VITE_GOOGLE_CLIENT_ID) -and -not [string]:
   $initializedViteGoogleClientId = $true
 }
 
+$initializedAspNetCertPassword = $false
+if (-not [string]::IsNullOrWhiteSpace($env:HTTPS_CERT_PASSWORD)) {
+  Set-Item -Path "Env:ASPNETCORE_Kestrel__Certificates__Default__Password" -Value $env:HTTPS_CERT_PASSWORD
+  $initializedAspNetCertPassword = $true
+}
+
+$aspNetCertPath = ".certs/webapptemplate-dev.pfx"
+Set-Item -Path "Env:ASPNETCORE_Kestrel__Certificates__Default__Path" -Value $aspNetCertPath
+
 Write-Host "Loaded $loaded required environment variable(s) from dotnet user-secrets."
 if ($initializedViteGoogleClientId) {
   Write-Host "Initialized VITE_GOOGLE_CLIENT_ID from Google__ClientId."
 }
+if ($initializedAspNetCertPassword) {
+  Write-Host "Initialized ASPNETCORE_Kestrel__Certificates__Default__Password from HTTPS_CERT_PASSWORD."
+}
+Write-Host "Initialized ASPNETCORE_Kestrel__Certificates__Default__Path to $aspNetCertPath."

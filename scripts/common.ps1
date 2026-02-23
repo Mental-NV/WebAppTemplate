@@ -183,6 +183,70 @@ function Import-OptionalSecretsFile {
     return $null
 }
 
+function Initialize-HttpsCertificateMaterialization {
+    param(
+        [Parameter(Mandatory)]
+        [string]$ProjectRoot,
+
+        [switch]$Required,
+
+        [string]$Base64EnvVarName = "HTTPS_CERT_PFX_BASE64",
+
+        [string]$PasswordEnvVarName = "HTTPS_CERT_PASSWORD",
+
+        [string]$DefaultRelativeOutputPath = ".certs/webapptemplate-dev.pfx"
+    )
+
+    $base64Value = [Environment]::GetEnvironmentVariable($Base64EnvVarName)
+    $passwordValue = [Environment]::GetEnvironmentVariable($PasswordEnvVarName)
+
+    $hasBase64 = -not [string]::IsNullOrWhiteSpace($base64Value)
+    $hasPassword = -not [string]::IsNullOrWhiteSpace($passwordValue)
+
+    if (-not $hasBase64 -and -not $hasPassword) {
+        if ($Required.IsPresent) {
+            throw "HTTPS certificate materialization requires '$Base64EnvVarName' and '$PasswordEnvVarName'."
+        }
+
+        Write-Host "HTTPS certificate materialization skipped: '$Base64EnvVarName'/'$PasswordEnvVarName' are not set." -ForegroundColor DarkGray
+        return $null
+    }
+
+    if (-not $hasBase64 -or -not $hasPassword) {
+        throw "HTTPS certificate materialization requires both '$Base64EnvVarName' and '$PasswordEnvVarName'."
+    }
+
+    $targetPath = $DefaultRelativeOutputPath
+    if (-not [System.IO.Path]::IsPathRooted($targetPath)) {
+        $targetPath = Join-Path -Path $ProjectRoot -ChildPath $targetPath
+    }
+
+    $targetDir = Split-Path -Parent $targetPath
+    if (-not [string]::IsNullOrWhiteSpace($targetDir)) {
+        New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+    }
+
+    try {
+        $bytes = [Convert]::FromBase64String($base64Value.Trim())
+    }
+    catch {
+        throw "Failed to decode '$Base64EnvVarName' as base64. $($_.Exception.Message)"
+    }
+
+    [System.IO.File]::WriteAllBytes($targetPath, $bytes)
+    [Environment]::SetEnvironmentVariable("ASPNETCORE_Kestrel__Certificates__Default__Path", $targetPath)
+    [Environment]::SetEnvironmentVariable("ASPNETCORE_Kestrel__Certificates__Default__Password", $passwordValue)
+
+    Write-Host "Materialized HTTPS certificate to $targetPath" -ForegroundColor Gray
+
+    return [pscustomobject]@{
+        Path               = $targetPath
+        Password           = $passwordValue
+        SourceEnvVarName   = $Base64EnvVarName
+        PasswordEnvVarName = $PasswordEnvVarName
+    }
+}
+
 function Install-WebDependencies {
     param(
         [Parameter(Mandatory)]

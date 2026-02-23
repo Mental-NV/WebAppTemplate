@@ -8,8 +8,14 @@ $env:VITE_GOOGLE_CLIENT_ID = "REPLACE_ME.apps.googleusercontent.com"
 $env:Google__ClientId = "REPLACE_ME.apps.googleusercontent.com"
 $env:Jwt__SigningKey = "REPLACE_ME_with_a_real_signing_key_at_least_32_chars"
 
-# HTTPS certificate for local published runs (required by scripts/run.ps1)
+# HTTPS certificate source-of-truth secrets for local CI/published runs (required by scripts/run.ps1)
 # Example generation/export (cross-platform, run once):
 #   dotnet dev-certs https -ep ./.certs/webapptemplate-dev.pfx -p "changeit"
-$env:ASPNETCORE_Kestrel__Certificates__Default__Path = ".certs/webapptemplate-dev.pfx"
-$env:ASPNETCORE_Kestrel__Certificates__Default__Password = "REPLACE_ME_cert_password"
+$env:HTTPS_CERT_PASSWORD = "REPLACE_ME_cert_password"
+$env:HTTPS_CERT_PFX_BASE64 = "REPLACE_ME_base64_pfx"
+
+# scripts/ci.ps1 and scripts/run.ps1 materialize to:
+#   .certs/webapptemplate-dev.pfx
+# and derive:
+#   ASPNETCORE_Kestrel__Certificates__Default__Path
+#   ASPNETCORE_Kestrel__Certificates__Default__Password
