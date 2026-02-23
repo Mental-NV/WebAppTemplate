@@ -27,21 +27,37 @@ Create a Google OAuth client (Google Cloud Console) and add your dev origin:
   - `http://localhost:5000`
   - `https://localhost:5001`
 
-Then set the client id in both SPA and API config.
+Then set the client id via the secrets-loading flow below (`dotnet user-secrets`), which also initializes `VITE_GOOGLE_CLIENT_ID` for script-driven build/run.
 
-### Configure SPA env
-Copy `.env.example` -> `.env.local` in `src/web`:
-```bash
-cd src/web
-cp .env.example .env.local
+## Secrets Loading (`dotnet user-secrets` -> env vars)
+`scripts/secrets.local.ps1` reads `dotnet user-secrets list` from `src/api`, parses the output, and exports the env vars required by `scripts/publish.ps1` / `scripts/run.ps1`.
+
+Required secrets (stored in `dotnet user-secrets`):
+- `Jwt__SigningKey`
+- `Google__ClientId`
+- `ASPNETCORE_Kestrel__Certificates__Default__Path`
+- `ASPNETCORE_Kestrel__Certificates__Default__Password`
+
+Special case:
+- `VITE_GOOGLE_CLIENT_ID` is initialized automatically from `Google__ClientId`
+
+Set them (API project already has a `UserSecretsId`):
+```powershell
+cd src/api
+dotnet user-secrets set "Jwt__SigningKey" "replace-with-a-real-signing-key-at-least-32-chars"
+dotnet user-secrets set "Google__ClientId" "your-google-client-id.apps.googleusercontent.com"
+dotnet user-secrets set "ASPNETCORE_Kestrel__Certificates__Default__Path" ".certs/webapptemplate-dev.pfx"
+dotnet user-secrets set "ASPNETCORE_Kestrel__Certificates__Default__Password" "changeit"
 ```
-Set:
-- `VITE_GOOGLE_CLIENT_ID=...`
 
-### Configure API settings
-Edit `src/api/appsettings.json`:
-- `Google:ClientId` should match the SPA client id
-- `Jwt:SigningKey` MUST be changed for real apps (32+ bytes)
+HTTPS cert example (matches the path/password above):
+```powershell
+cd ../..
+New-Item -ItemType Directory -Force ./.certs | Out-Null
+dotnet dev-certs https -ep ./.certs/webapptemplate-dev.pfx -p "changeit"
+```
+
+If you run the web app directly with `npm run dev`, also provide `VITE_GOOGLE_CLIENT_ID` to the shell (or create `src/web/.env.local`). `scripts/publish.ps1` and `scripts/run.ps1` load it automatically via `scripts/secrets.local.ps1`.
 
 ## Run (dev)
 ### 1) Backend
@@ -96,29 +112,6 @@ Default output: `artifacts/publish/app`
 ```powershell
 pwsh -NoLogo -NoProfile -File ./scripts/run.ps1
 ```
-
-## Local Secrets Placeholder Setup (for `publish.ps1` / `run.ps1`)
-Copy the template and replace placeholders:
-
-```powershell
-Copy-Item ./scripts/secrets.example.ps1 ./scripts/secrets.local.ps1
-```
-
-Required by `scripts/run.ps1`:
-- `Google__ClientId`
-- `Jwt__SigningKey`
-- `ASPNETCORE_Kestrel__Certificates__Default__Path`
-- `ASPNETCORE_Kestrel__Certificates__Default__Password`
-
-Optional for web build/publish (but needed for real Google sign-in in the SPA):
-- `VITE_GOOGLE_CLIENT_ID`
-
-### HTTPS cert (example, cross-platform)
-```powershell
-New-Item -ItemType Directory -Force ./.certs | Out-Null
-dotnet dev-certs https -ep ./.certs/webapptemplate-dev.pfx -p "changeit"
-```
-Then set the matching path/password in `scripts/secrets.local.ps1`.
 
 ## GitHub Actions
 Workflow: `.github/workflows/build-and-ci.yml`
