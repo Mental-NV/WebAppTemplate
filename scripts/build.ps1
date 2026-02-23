@@ -1,61 +1,89 @@
 # Build script for WebAppTemplate
-# Builds API and Web, copies web output to API's wwwroot
+# Builds API and Web, then copies web output to API wwwroot (cross-platform, pwsh)
 
 param(
-    [string]$Configuration = "Debug"
+    [string]$Configuration = "Debug",
+    [switch]$NoRestore,
+    [switch]$NoWebInstall,
+    [switch]$UseNpmInstall,
+    [switch]$SkipCopyToWwwroot,
+    [switch]$NoCleanWwwroot,
+    [switch]$CI
 )
 
+Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$ProjectRoot = Split-Path -Parent $PSScriptRoot
-$ApiPath = Join-Path $ProjectRoot "src\api"
-$WebPath = Join-Path $ProjectRoot "src\web"
-$WwwRootPath = Join-Path $ApiPath "wwwroot"
+. (Join-Path -Path $PSScriptRoot -ChildPath "common.ps1")
+
+$paths = Get-RepoPaths
+$effectiveCi = Get-EffectiveCiMode -CiSwitch:$CI
+$platform = Get-PlatformLabel
 
 Write-Host "Building WebAppTemplate..." -ForegroundColor Cyan
-Write-Host "Configuration: $Configuration" -ForegroundColor Gray
+Write-Host "Platform: $platform | CI: $effectiveCi | Configuration: $Configuration" -ForegroundColor Gray
+Write-Host "Restore: $(-not $NoRestore) | Web install: $(-not $NoWebInstall) | Copy to wwwroot: $(-not $SkipCopyToWwwroot)" -ForegroundColor Gray
 
-# Step 1: Build API
-Write-Host "`n[1/3] Building API..." -ForegroundColor Yellow
-Push-Location $ApiPath
-try {
-    dotnet build --configuration $Configuration
-    if ($LASTEXITCODE -ne 0) { throw "API build failed" }
-}
-finally {
-    Pop-Location
-}
+$step = 0
+$totalSteps = 6
 
-# Step 2: Build Web (Vite)
-Write-Host "`n[2/3] Building Web..." -ForegroundColor Yellow
-Push-Location $WebPath
-try {
-    npm run build
-    if ($LASTEXITCODE -ne 0) { throw "Web build failed" }
+$step++
+Write-Host "`n[$step/$totalSteps] Preflight checks..." -ForegroundColor Yellow
+Assert-CommandAvailable -Name "dotnet"
+Assert-CommandAvailable -Name "npm"
+
+$step++
+Write-Host "`n[$step/$totalSteps] Restoring .NET dependencies..." -ForegroundColor Yellow
+if ($NoRestore.IsPresent) {
+    Write-Host "Skipping dotnet restore (-NoRestore)." -ForegroundColor DarkGray
 }
-finally {
-    Pop-Location
+else {
+    Invoke-External -FilePath "dotnet" -Arguments @("restore", $paths.SolutionPath) -WorkingDirectory $paths.ProjectRoot -StepName "dotnet restore"
 }
 
-# Step 3: Copy web output to wwwroot
-Write-Host "`n[3/3] Copying web output to wwwroot..." -ForegroundColor Yellow
-
-# Create wwwroot if it doesn't exist
-if (-not (Test-Path $WwwRootPath)) {
-    New-Item -ItemType Directory -Path $WwwRootPath | Out-Null
+$step++
+Write-Host "`n[$step/$totalSteps] Installing web dependencies..." -ForegroundColor Yellow
+if ($NoWebInstall.IsPresent) {
+    Write-Host "Skipping npm install/ci (-NoWebInstall)." -ForegroundColor DarkGray
+}
+else {
+    Install-WebDependencies -WebDir $paths.WebDir -LockFilePath $paths.WebPackageLockPath -UseNpmInstall:$UseNpmInstall
 }
 
-# Remove existing files in wwwroot (except .gitkeep if any)
-Get-ChildItem -Path $WwwRootPath -File | Remove-Item -Force
+$step++
+Write-Host "`n[$step/$totalSteps] Building API..." -ForegroundColor Yellow
+$apiBuildArgs = @(
+    "build",
+    $paths.ApiProjectPath,
+    "--configuration", $Configuration
+)
+if (-not $NoRestore.IsPresent) {
+    $apiBuildArgs += "--no-restore"
+}
+Invoke-External -FilePath "dotnet" -Arguments $apiBuildArgs -WorkingDirectory $paths.ProjectRoot -StepName "API build"
 
-# Copy Vite dist contents to wwwroot
-$DistPath = Join-Path $WebPath "dist"
-if (Test-Path $DistPath) {
-    Copy-Item -Path "$DistPath\*" -Destination $WwwRootPath -Recurse -Force
-    Write-Host "Copied web files to $WwwRootPath" -ForegroundColor Green
-} else {
-    Write-Host "Warning: dist folder not found at $DistPath" -ForegroundColor Yellow
+$step++
+Write-Host "`n[$step/$totalSteps] Building Web..." -ForegroundColor Yellow
+Invoke-External -FilePath "npm" -Arguments @("run", "build") -WorkingDirectory $paths.WebDir -StepName "Web build"
+
+$step++
+Write-Host "`n[$step/$totalSteps] Syncing web output to API wwwroot..." -ForegroundColor Yellow
+if ($SkipCopyToWwwroot.IsPresent) {
+    Write-Host "Skipping copy to wwwroot (-SkipCopyToWwwroot)." -ForegroundColor DarkGray
+}
+else {
+    if (-not (Test-Path -LiteralPath $paths.WebDistDir)) {
+        throw "Web build output was not found at '$($paths.WebDistDir)'."
+    }
+
+    Sync-DirectoryContents `
+        -SourceDir $paths.WebDistDir `
+        -DestinationDir $paths.ApiWwwRootDir `
+        -CleanDestination:(-not $NoCleanWwwroot.IsPresent) `
+        -PreserveNames @(".gitkeep")
+
+    Write-Host "Copied web files to $($paths.ApiWwwRootDir)" -ForegroundColor Green
 }
 
-Write-Host "`nBuild complete!" -ForegroundColor Green
-Write-Host "Run 'dotnet run' in src/api to start the application" -ForegroundColor Gray
+Write-Host "`nBuild complete." -ForegroundColor Green
+Write-Host "Run 'dotnet run' in src/api or use scripts/run.ps1 for published app execution." -ForegroundColor Gray

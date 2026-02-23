@@ -28,3 +28,7 @@ Thumbs.db
 # --- Env ---
 .env.local
 .env.*.local
+
+# --- Misc ---
+pr-body.md
+.certs/

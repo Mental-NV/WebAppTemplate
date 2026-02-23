@@ -1,36 +1,107 @@
 # CI script for WebAppTemplate
-# Runs API and Web test suites
+# Cross-platform (pwsh) CI/local verification for API + Web
 
+param(
+    [string]$Configuration = "Debug",
+    [switch]$NoRestore,
+    [switch]$NoBuild,
+    [switch]$NoWebInstall,
+    [switch]$UseNpmInstall,
+    [switch]$SkipApiUnitTests,
+    [switch]$SkipApiIntegrationTests,
+    [switch]$SkipWebTests,
+    [switch]$CI
+)
+
+Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$ProjectRoot = Split-Path -Parent $PSScriptRoot
-$ApiPath = Join-Path $ProjectRoot "src\api"
-$WebPath = Join-Path $ProjectRoot "src\web"
+. (Join-Path -Path $PSScriptRoot -ChildPath "common.ps1")
 
-Write-Host "Running CI tests..." -ForegroundColor Cyan
+$paths = Get-RepoPaths
+$effectiveCi = Get-EffectiveCiMode -CiSwitch:$CI
+$platform = Get-PlatformLabel
 
-# Step 1: Run API tests (dotnet test from solution root)
-Write-Host "`n[1/2] Running API tests..." -ForegroundColor Yellow
-Push-Location $ProjectRoot
-try {
-    dotnet test --no-build --verbosity normal
-    if ($LASTEXITCODE -ne 0) { throw "API tests failed" }
-    Write-Host "API tests passed!" -ForegroundColor Green
-}
-finally {
-    Pop-Location
-}
+Write-Host "Running CI checks..." -ForegroundColor Cyan
+Write-Host "Platform: $platform | CI: $effectiveCi | Configuration: $Configuration" -ForegroundColor Gray
+Write-Host "Restore: $(-not $NoRestore) | Build: $(-not $NoBuild) | Web install: $(-not $NoWebInstall)" -ForegroundColor Gray
 
-# Step 2: Run Web tests (npm run test from src/web)
-Write-Host "`n[2/2] Running Web tests..." -ForegroundColor Yellow
-Push-Location $WebPath
-try {
-    npm run test
-    if ($LASTEXITCODE -ne 0) { throw "Web tests failed" }
-    Write-Host "Web tests passed!" -ForegroundColor Green
+$step = 0
+$totalSteps = 7
+
+$step++
+Write-Host "`n[$step/$totalSteps] Preflight checks..." -ForegroundColor Yellow
+Assert-CommandAvailable -Name "dotnet"
+Assert-CommandAvailable -Name "npm"
+
+$step++
+Write-Host "`n[$step/$totalSteps] Restoring .NET dependencies..." -ForegroundColor Yellow
+if ($NoRestore.IsPresent) {
+    Write-Host "Skipping dotnet restore (-NoRestore)." -ForegroundColor DarkGray
 }
-finally {
-    Pop-Location
+else {
+    Invoke-External -FilePath "dotnet" -Arguments @("restore", $paths.SolutionPath) -WorkingDirectory $paths.ProjectRoot -StepName "dotnet restore"
 }
 
-Write-Host "`nCI tests complete!" -ForegroundColor Green
+$step++
+Write-Host "`n[$step/$totalSteps] Installing web dependencies..." -ForegroundColor Yellow
+if ($NoWebInstall.IsPresent) {
+    Write-Host "Skipping npm install/ci (-NoWebInstall)." -ForegroundColor DarkGray
+}
+else {
+    Install-WebDependencies -WebDir $paths.WebDir -LockFilePath $paths.WebPackageLockPath -UseNpmInstall:$UseNpmInstall
+}
+
+$step++
+Write-Host "`n[$step/$totalSteps] Building solution..." -ForegroundColor Yellow
+if ($NoBuild.IsPresent) {
+    Write-Host "Skipping build (-NoBuild). Tests will still run with --no-build." -ForegroundColor DarkGray
+}
+else {
+    $buildArgs = @("build", $paths.SolutionPath, "--configuration", $Configuration)
+    if (-not $NoRestore.IsPresent) {
+        $buildArgs += "--no-restore"
+    }
+    Invoke-External -FilePath "dotnet" -Arguments $buildArgs -WorkingDirectory $paths.ProjectRoot -StepName "dotnet build"
+}
+
+$dotnetTestCommonArgs = @(
+    "--configuration", $Configuration,
+    "--no-build",
+    "--no-restore",
+    "--verbosity", "normal"
+)
+
+$step++
+Write-Host "`n[$step/$totalSteps] Running API unit tests..." -ForegroundColor Yellow
+if ($SkipApiUnitTests.IsPresent) {
+    Write-Host "Skipping API unit tests (-SkipApiUnitTests)." -ForegroundColor DarkGray
+}
+else {
+    $apiUnitTestArgs = @("test", $paths.ApiUnitTestsProjectPath) + $dotnetTestCommonArgs
+    Invoke-External -FilePath "dotnet" -Arguments $apiUnitTestArgs -WorkingDirectory $paths.ProjectRoot -StepName "API unit tests"
+    Write-Host "API unit tests passed." -ForegroundColor Green
+}
+
+$step++
+Write-Host "`n[$step/$totalSteps] Running API integration tests..." -ForegroundColor Yellow
+if ($SkipApiIntegrationTests.IsPresent) {
+    Write-Host "Skipping API integration tests (-SkipApiIntegrationTests)." -ForegroundColor DarkGray
+}
+else {
+    $apiIntegrationTestArgs = @("test", $paths.ApiTestsProjectPath) + $dotnetTestCommonArgs
+    Invoke-External -FilePath "dotnet" -Arguments $apiIntegrationTestArgs -WorkingDirectory $paths.ProjectRoot -StepName "API integration tests"
+    Write-Host "API integration tests passed." -ForegroundColor Green
+}
+
+$step++
+Write-Host "`n[$step/$totalSteps] Running Web tests..." -ForegroundColor Yellow
+if ($SkipWebTests.IsPresent) {
+    Write-Host "Skipping Web tests (-SkipWebTests)." -ForegroundColor DarkGray
+}
+else {
+    Invoke-External -FilePath "npm" -Arguments @("run", "test") -WorkingDirectory $paths.WebDir -StepName "Web tests"
+    Write-Host "Web tests passed." -ForegroundColor Green
+}
+
+Write-Host "`nCI checks complete." -ForegroundColor Green
