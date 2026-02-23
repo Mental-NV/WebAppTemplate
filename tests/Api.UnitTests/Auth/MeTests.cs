@@ -17,7 +17,7 @@ public sealed class MeTests
             new Claim(ClaimTypes.Name, "User Name")
         ]));
 
-        var result = Me.Handle(principal);
+        var result = GetMe.Handle(principal);
         var executed = await ResultTestHelper.ExecuteAsync(result);
 
         Assert.Equal(StatusCodes.Status200OK, executed.StatusCode);
@@ -35,7 +35,7 @@ public sealed class MeTests
             new Claim(ClaimTypes.NameIdentifier, "fallback-sub")
         ]));
 
-        var result = Me.Handle(principal);
+        var result = GetMe.Handle(principal);
         var executed = await ResultTestHelper.ExecuteAsync(result);
 
         using var json = ResultTestHelper.ParseJson(executed.Body);
@@ -49,7 +49,7 @@ public sealed class MeTests
     {
         var principal = new ClaimsPrincipal(new ClaimsIdentity());
 
-        var result = Me.Handle(principal);
+        var result = GetMe.Handle(principal);
         var executed = await ResultTestHelper.ExecuteAsync(result);
 
         using var json = ResultTestHelper.ParseJson(executed.Body);

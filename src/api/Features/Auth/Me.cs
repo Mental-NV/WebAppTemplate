@@ -2,7 +2,7 @@ using System.Security.Claims;
 
 namespace Api.Features.Auth;
 
-public static class Me
+public static class GetMe
 {
     public sealed record Response(string Subject, string? Email, string? Name);
 

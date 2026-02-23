@@ -10,7 +10,7 @@ public static class AuthEndpoints
         group.MapPost("/google", ExchangeGoogleIdToken.Handle)
              .AllowAnonymous();
 
-        group.MapGet("/me", Me.Handle)
+        group.MapGet("/me", GetMe.Handle)
              .RequireAuthorization();
 
         return apiV1;

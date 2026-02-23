@@ -1,11 +1,11 @@
 using System.Text;
+using Api.Data;
+using Api.Features.Auth;
+using Api.Features.Todos;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
-using Api.Data;
-using Api.Features.Auth;
-using Api.Features.Todos;
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -1,6 +1,5 @@
 using Api.Data;
 using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
 
 namespace Api.UnitTests.TestInfrastructure;
 

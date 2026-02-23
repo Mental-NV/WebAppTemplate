@@ -2,7 +2,6 @@ using Api.Data;
 using Api.Features.Auth;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace Api.UnitTests.Data;

@@ -18,10 +18,14 @@ internal sealed class FakeGoogleIdTokenValidator : Api.Features.Auth.IGoogleIdTo
         LastClientId = clientId;
 
         if (ExceptionToThrow is not null)
+        {
             throw ExceptionToThrow;
+        }
 
         if (PayloadToReturn is null)
+        {
             throw new InvalidOperationException("PayloadToReturn was not configured.");
+        }
 
         return Task.FromResult(PayloadToReturn);
     }

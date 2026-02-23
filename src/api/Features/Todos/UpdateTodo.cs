@@ -5,19 +5,26 @@ namespace Api.Features.Todos;
 
 public static class UpdateTodo
 {
+    internal static readonly string[] TitleRequiredErrors = ["Title is required."];
+
     public sealed record Request(string Title, bool IsCompleted);
     public sealed record Response(int Id, string Title, bool IsCompleted, DateTime CreatedAtUtc, DateTime? UpdatedAtUtc);
 
     public static async Task<IResult> Handle(int id, Request req, AppDbContext db, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(req.Title))
+        {
             return Results.ValidationProblem(new Dictionary<string, string[]>
             {
-                ["title"] = new[] { "Title is required." }
+                ["title"] = TitleRequiredErrors
             });
+        }
 
         var item = await db.Todos.FirstOrDefaultAsync(x => x.Id == id, ct);
-        if (item is null) return Results.NotFound();
+        if (item is null)
+        {
+            return Results.NotFound();
+        }
 
         item.Title = req.Title.Trim();
         item.IsCompleted = req.IsCompleted;
