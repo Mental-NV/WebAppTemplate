@@ -26,10 +26,10 @@ Create a Google OAuth client (Google Cloud Console) and add your dev origin:
 - If you run the built SPA from the API, also add:
   - `https://localhost:5001`
 
-Then set the client id via the secrets-loading flow below (`dotnet user-secrets`), which also initializes `VITE_GOOGLE_CLIENT_ID` for script-driven build/run.
+Then set the client id via the secrets-loading flow below (`dotnet user-secrets`), which also initializes `VITE_GOOGLE_CLIENT_ID` for script-driven CI/build/run.
 
 ## Secrets Loading (`dotnet user-secrets` -> env vars)
-`scripts/secrets.local.ps1` reads `dotnet user-secrets list` from `src/api`, parses the output, and exports the env vars required by `scripts/publish.ps1` / `scripts/run.ps1`. For HTTPS, the source-of-truth secrets are `HTTPS_CERT_PFX_BASE64` and `HTTPS_CERT_PASSWORD`; scripts derive/materialize the ASP.NET Kestrel certificate env vars from them.
+`scripts/secrets.local.ps1` reads `dotnet user-secrets list` from `src/api`, parses the output, and exports the env vars required by `scripts/ci.ps1` / `scripts/run.ps1`. For HTTPS, the source-of-truth secrets are `HTTPS_CERT_PFX_BASE64` and `HTTPS_CERT_PASSWORD`; scripts derive/materialize the ASP.NET Kestrel certificate env vars from them.
 
 Required secrets (stored in `dotnet user-secrets`):
 - `Jwt__SigningKey`
@@ -71,7 +71,7 @@ CI/local automation materializes the certificate file from:
 - `ASPNETCORE_Kestrel__Certificates__Default__Path`
 - `ASPNETCORE_Kestrel__Certificates__Default__Password`
 
-If you run the web app directly with `npm run dev`, also provide `VITE_GOOGLE_CLIENT_ID` to the shell (or create `src/web/.env.local`). `scripts/publish.ps1` and `scripts/run.ps1` load it automatically via `scripts/secrets.local.ps1`.
+If you run the web app directly with `npm run dev`, also provide `VITE_GOOGLE_CLIENT_ID` to the shell (or create `src/web/.env.local`). `scripts/ci.ps1` and `scripts/run.ps1` load it automatically via `scripts/secrets.local.ps1`.
 
 ## Run (dev)
 ### 1) Backend
@@ -106,48 +106,65 @@ dotnet test
 ## Scripts (`pwsh`, Windows/Linux)
 Run from repo root.
 
-### Build API + Web and copy SPA to `src/api/wwwroot`
+Defaults:
+- Local script configuration default is `Debug` (`build.ps1`, `ci.ps1`, `publish.ps1`, `pipeline.ps1`)
+- Remote GitHub Actions explicitly uses `Release`
+
+Stage contract:
+- `build.ps1` -> `ci.ps1` -> `publish.ps1` -> `run.ps1`
+- Each later stage assumes the earlier stage(s) already completed and reuses their outputs
+
+### Build stage (restore + build solution/web + copy SPA to `src/api/wwwroot`)
 ```powershell
 pwsh -NoLogo -NoProfile -File ./scripts/build.ps1
 ```
 
-### CI checks (API unit + integration + web tests)
+### CI checks stage (API unit + integration + web tests; assumes `build.ps1` already ran)
 ```powershell
 pwsh -NoLogo -NoProfile -File ./scripts/ci.ps1
 ```
-CI HTTPS cert materialization inputs (required only when materializing the certificate in CI):
+CI HTTPS cert materialization inputs (optional in `ci.ps1`, required in `run.ps1`):
 - `HTTPS_CERT_PFX_BASE64`
 - `HTTPS_CERT_PASSWORD`
 - Optional local secrets loader (default): `scripts/secrets.local.ps1` (`dotnet user-secrets`)
 
-### Publish a single artifact (API + SPA in one folder)
+### Publish stage (single artifact; assumes `build.ps1` and `ci.ps1` already ran)
 ```powershell
 pwsh -NoLogo -NoProfile -File ./scripts/publish.ps1
 ```
 Default output: `artifacts/publish/app`
 
-### Run published app (API serves SPA)
+### Run stage (runs published app; assumes `publish.ps1` already ran)
 ```powershell
 pwsh -NoLogo -NoProfile -File ./scripts/run.ps1
 ```
 Published app HTTPS endpoint: `https://localhost:5001`
 
+### Pipeline wrapper (runs stages sequentially)
+```powershell
+pwsh -NoLogo -NoProfile -File ./scripts/pipeline.ps1
+```
+Useful examples:
+- Run everything in local defaults (`Debug`): `./scripts/pipeline.ps1`
+- Run all stages in `Release`: `./scripts/pipeline.ps1 -Configuration Release`
+- Stop before starting the app: `./scripts/pipeline.ps1 -SkipRun`
+- Reuse an existing publish and run only: `./scripts/pipeline.ps1 -SkipBuild -SkipCi -SkipPublish`
+
 ## GitHub Actions
-Workflow: `.github/workflows/build-and-ci.yml`
+Workflow: `.github/workflows/ci.yml`
 
 - Runs on `pull_request`
 - Runs on `push` to `main`
 - Matrix: `ubuntu-latest`, `windows-latest`
-- Executes:
+- Single matrix job executes (in order, with `-Configuration Release`):
   - `scripts/build.ps1`
   - `scripts/ci.ps1`
-- Additional Ubuntu smoke job (required; expects the secrets below):
-  - Materializes HTTPS cert from `HTTPS_CERT_PFX_BASE64` + `HTTPS_CERT_PASSWORD`
   - `scripts/publish.ps1`
-  - `scripts/run.ps1 -NoPublish`
-  - Probes `https://localhost:5001/`
+  - `scripts/run.ps1` (smoke step launches it and probes `https://localhost:5001/`)
+- HTTPS cert materialization happens in `scripts/run.ps1` during the smoke step (required there)
+- `scripts/ci.ps1` also attempts cert materialization, but skips when cert secrets are not provided
 
-GitHub Actions secrets used by publish/run smoke job:
+GitHub Actions secrets used by the smoke step:
 - `GOOGLE__CLIENTID` (reused for both `Google__ClientId` and `VITE_GOOGLE_CLIENT_ID`)
 - `JWT__SIGNINGKEY`
 - `HTTPS_CERT_PFX_BASE64`
