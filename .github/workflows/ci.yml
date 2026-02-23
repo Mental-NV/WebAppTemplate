@@ -51,75 +51,21 @@ jobs:
       - name: Publish
         run: ./scripts/publish.ps1 -Configuration Release -CI
 
-      - name: Run HTTPS smoke test
+      - name: Install Playwright browsers (Linux)
+        if: runner.os == 'Linux'
+        working-directory: src/web
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright browsers (Windows)
+        if: runner.os == 'Windows'
+        working-directory: src/web
+        run: npx playwright install chromium
+
+      - name: Run Playwright E2E
         env:
-          Google__ClientId: ${{ secrets.GOOGLE__CLIENTID }}
           Jwt__SigningKey: ${{ secrets.JWT__SIGNINGKEY }}
           HTTPS_CERT_PFX_BASE64: ${{ secrets.HTTPS_CERT_PFX_BASE64 }}
           HTTPS_CERT_PASSWORD: ${{ secrets.HTTPS_CERT_PASSWORD }}
-        run: |
-          $artifactDir = Join-Path -Path $PWD -ChildPath "artifacts"
-          New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
-
-          $stdoutLog = Join-Path -Path $artifactDir -ChildPath "run-smoke.stdout.log"
-          $stderrLog = Join-Path -Path $artifactDir -ChildPath "run-smoke.stderr.log"
-          $proc = $null
-          $uri = "https://localhost:5001/"
-
-          try {
-            $proc = Start-Process `
-              -FilePath "pwsh" `
-              -ArgumentList @(
-                "-NoLogo",
-                "-NoProfile",
-                "-File", "./scripts/run.ps1",
-                "-PublishOutputDir", "artifacts/publish/app",
-                "-CI"
-              ) `
-              -WorkingDirectory $PWD `
-              -PassThru `
-              -RedirectStandardOutput $stdoutLog `
-              -RedirectStandardError $stderrLog
-
-            $isReady = $false
-            for ($attempt = 1; $attempt -le 30; $attempt++) {
-              if ($proc.HasExited) {
-                break
-              }
-
-              try {
-                $response = Invoke-WebRequest -Uri $uri -SkipCertificateCheck -TimeoutSec 5
-                if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 400) {
-                  $isReady = $true
-                  break
-                }
-              }
-              catch {
-                Start-Sleep -Seconds 2
-              }
-            }
-
-            if (-not $isReady) {
-              if ($null -ne $proc -and $proc.HasExited) {
-                Write-Host "run.ps1 exited early with code $($proc.ExitCode)." -ForegroundColor Red
-              }
-
-              if (Test-Path -LiteralPath $stdoutLog) {
-                Write-Host "`n--- run smoke stdout ---"
-                Get-Content -LiteralPath $stdoutLog
-              }
-              if (Test-Path -LiteralPath $stderrLog) {
-                Write-Host "`n--- run smoke stderr ---"
-                Get-Content -LiteralPath $stderrLog
-              }
-
-              throw "HTTPS smoke test failed: $uri"
-            }
-
-            Write-Host "HTTPS smoke test passed: $uri" -ForegroundColor Green
-          }
-          finally {
-            if ($null -ne $proc -and -not $proc.HasExited) {
-              Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
-            }
-          }
+          E2E_AUTH_SECRET: ci-e2e-secret
+        working-directory: src/web
+        run: npx playwright test --project=chromium

@@ -1,6 +1,6 @@
 # Full-stack Web App Template
 - ASP.NET Core + Minimal API + Vertical Slices + URL versioning + xUnity
-- React + TypeScript + Vite + Vite tests
+- React + TypeScript + Vite + Vitest + Playwright E2E tests
 - Google Auth (JWT)
 
 ## Prereqs
@@ -11,6 +11,7 @@
 ## Solution layout
 - Backend API: `src/api`
 - Frontend SPA: `src/web`
+- Frontend E2E tests (Playwright): `src/web/tests/e2e`
 - Backend tests (xUnit): `tests/Api.Tests`
 
 ## Google Auth (SPA -> API) + JWT bearer
@@ -98,10 +99,40 @@ npm run build
 The Vite dev server proxies `/api/*` to `http://localhost:5000` (see `vite.config.ts`).
 
 ## Tests
+### Backend integration tests (xUnit)
 ```bash
 cd tests/Api.Tests
 dotnet test
 ```
+
+### Frontend unit tests (Vitest)
+```bash
+cd src/web
+npm test
+```
+
+### Frontend E2E tests (Playwright)
+Prereqs:
+- Run `scripts/build.ps1`, `scripts/ci.ps1`, and `scripts/publish.ps1` first (or `scripts/pipeline.ps1`)
+- HTTPS cert secrets available (same as `scripts/run.ps1`)
+
+Install Playwright browser:
+```bash
+cd src/web
+npm run test:e2e:install
+```
+
+Run E2E:
+```powershell
+cd src/web
+$env:E2E_AUTH_SECRET = "local-e2e-secret" # optional locally; defaults if omitted
+npm run test:e2e:ci
+```
+
+Notes:
+- Playwright starts the published app via `scripts/run.ps1 -E2E` on `https://localhost:5001`
+- E2E auth uses a test-only endpoint (`POST /api/v1/test/auth/login`) available only when `ASPNETCORE_ENVIRONMENT=E2E`
+- The setup test stores the app JWT in SPA local storage key `access_token` and reuses Playwright `storageState`
 
 ## Scripts (`pwsh`, Windows/Linux)
 Run from repo root.
@@ -140,6 +171,15 @@ pwsh -NoLogo -NoProfile -File ./scripts/run.ps1
 ```
 Published app HTTPS endpoint: `https://localhost:5001`
 
+E2E mode (enables test-only auth endpoint and forces `ASPNETCORE_ENVIRONMENT=E2E`):
+```powershell
+pwsh -NoLogo -NoProfile -File ./scripts/run.ps1 -E2E
+```
+Optional E2E auth secret override:
+```powershell
+pwsh -NoLogo -NoProfile -File ./scripts/run.ps1 -E2E -E2EAuthSecret "my-local-secret"
+```
+
 ### Pipeline wrapper (runs stages sequentially)
 ```powershell
 pwsh -NoLogo -NoProfile -File ./scripts/pipeline.ps1
@@ -160,20 +200,27 @@ Workflow: `.github/workflows/ci.yml`
   - `scripts/build.ps1`
   - `scripts/ci.ps1`
   - `scripts/publish.ps1`
-  - `scripts/run.ps1` (smoke step launches it and probes `https://localhost:5001/`)
-- HTTPS cert materialization happens in `scripts/run.ps1` during the smoke step (required there)
+  - Playwright browser install (`chromium`)
+  - Playwright E2E (`npx playwright test --project=chromium`) which launches `scripts/run.ps1 -E2E`
+- HTTPS cert materialization happens in `scripts/run.ps1` during the Playwright E2E run (required there)
 - `scripts/ci.ps1` also attempts cert materialization, but skips when cert secrets are not provided
 
-GitHub Actions secrets used by the smoke step:
-- `GOOGLE__CLIENTID` (reused for both `Google__ClientId` and `VITE_GOOGLE_CLIENT_ID`)
+GitHub Actions secrets used by the Playwright E2E step:
 - `JWT__SIGNINGKEY`
 - `HTTPS_CERT_PFX_BASE64`
 - `HTTPS_CERT_PASSWORD`
+
+GitHub Actions env used by CI:
+- `Google__ClientId` / `VITE_GOOGLE_CLIENT_ID` are set to CI dummy values in workflow env (Google UI login is not used in E2E)
+- `E2E_AUTH_SECRET` is provided to the Playwright run and sent as `X-E2E-Auth-Secret`
 
 ## API endpoints
 ### Auth
 - `POST /api/v1/auth/google` (exchange Google ID token for app JWT)
 - `GET /api/v1/auth/me` (requires Bearer token)
+
+### Test Auth (E2E environment only)
+- `POST /api/v1/test/auth/login` (mints app JWT for Playwright E2E; requires `X-E2E-Auth-Secret`)
 
 ### Todos (requires Bearer token)
 - `GET /api/v1/todos`
@@ -184,3 +231,5 @@ GitHub Actions secrets used by the smoke step:
 
 ## Testing note
 Backend integration tests use a **Test** authentication scheme so protected endpoints can be tested without real JWT/Google.
+
+Playwright E2E tests do not click Google Sign-In. They use an **E2E-only** API endpoint to mint an app JWT, then preload SPA auth state (`localStorage['access_token']`) via Playwright `storageState`.

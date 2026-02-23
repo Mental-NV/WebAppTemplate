@@ -1,6 +1,7 @@
 using System.Text;
 using Api.Data;
 using Api.Features.Auth;
+using Api.Features.TestAuth;
 using Api.Features.Todos;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -82,6 +83,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+var isE2E = app.Environment.IsEnvironment("E2E");
 
 app.UseStaticFiles();
 
@@ -91,6 +93,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
     app.UseCors("dev");
 
+    await DbInitializer.InitializeAsync(app);
+}
+else if (isE2E)
+{
     await DbInitializer.InitializeAsync(app);
 }
 
@@ -107,6 +113,11 @@ var v1 = app.MapGroup("/api/v1");
 
 v1.MapAuthEndpoints();
 v1.MapTodosEndpoints();
+
+if (isE2E)
+{
+    v1.MapTestAuthEndpoints();
+}
 
 app.Run();
 

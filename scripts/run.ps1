@@ -8,7 +8,9 @@ param(
     [string]$Environment = "Development",
     [int]$HttpPort = 5000,
     [int]$HttpsPort = 5001,
-    [switch]$CI
+    [switch]$CI,
+    [switch]$E2E,
+    [string]$E2EAuthSecret = ""
 )
 
 Set-StrictMode -Version Latest
@@ -70,7 +72,28 @@ if (-not (Test-Path -LiteralPath $certPath)) {
 
 $step++
 Write-Host "`n[$step/$totalSteps] Configuring runtime environment..." -ForegroundColor Yellow
-[Environment]::SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", $Environment)
+[string]$resolvedEnvironment = $Environment
+if ($E2E.IsPresent) {
+    $resolvedEnvironment = "E2E"
+
+    $resolvedE2eSecret = $E2EAuthSecret
+    if ([string]::IsNullOrWhiteSpace($resolvedE2eSecret)) {
+        $resolvedE2eSecret = [Environment]::GetEnvironmentVariable("E2E_AUTH_SECRET")
+    }
+    if ([string]::IsNullOrWhiteSpace($resolvedE2eSecret)) {
+        if ($effectiveCi) {
+            throw "E2E mode requires E2E_AUTH_SECRET to be set (parameter or environment variable) when running in CI."
+        }
+
+        $resolvedE2eSecret = "local-e2e-secret"
+    }
+
+    [Environment]::SetEnvironmentVariable("E2E_AUTH_ENABLED", "true")
+    [Environment]::SetEnvironmentVariable("E2E_AUTH_SECRET", $resolvedE2eSecret)
+    Write-Host "E2E mode enabled (ASPNETCORE_ENVIRONMENT=E2E, E2E auth endpoint enabled)." -ForegroundColor Gray
+}
+
+[Environment]::SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", $resolvedEnvironment)
 [Environment]::SetEnvironmentVariable("ASPNETCORE_URLS", "http://localhost:$HttpPort;https://localhost:$HttpsPort")
 
 $connectionStringFromEnv = [Environment]::GetEnvironmentVariable("ConnectionStrings__Default")
@@ -93,7 +116,7 @@ if ([string]::IsNullOrWhiteSpace($connectionStringFromEnv)) {
     $connectionStringFromEnv = [Environment]::GetEnvironmentVariable("ConnectionStrings__Default")
 }
 
-Write-Host "ASPNETCORE_ENVIRONMENT=$Environment" -ForegroundColor Gray
+Write-Host "ASPNETCORE_ENVIRONMENT=$resolvedEnvironment" -ForegroundColor Gray
 Write-Host "ASPNETCORE_URLS=$([Environment]::GetEnvironmentVariable('ASPNETCORE_URLS'))" -ForegroundColor Gray
 Write-Host "HTTPS cert path=$certPath" -ForegroundColor Gray
 Write-Host "ConnectionStrings__Default=$connectionStringFromEnv" -ForegroundColor Gray
