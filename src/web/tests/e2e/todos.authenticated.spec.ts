@@ -15,7 +15,9 @@ test('authenticated user can create, toggle, and delete a todo', async ({ page }
   await expect(row).toBeVisible()
 
   const labelText = row.locator('label span', { hasText: title })
-  await row.getByRole('checkbox').check()
+  const checkbox = row.getByRole('checkbox')
+  await checkbox.click()
+  await expect(checkbox).toBeChecked()
   await expect(labelText).toHaveClass(/done/)
 
   await row.getByRole('button', { name: 'Delete' }).click()
