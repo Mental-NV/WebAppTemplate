@@ -52,9 +52,9 @@
         "task-202",
         "task-203"
       ],
-      "status": "New",
-      "startedAt": null,
-      "doneAt": null
+      "status": "Done",
+      "startedAt": "2026-02-24T21:04:31.9867873+00:00",
+      "doneAt": "2026-02-24T21:12:34.6402671+00:00"
     },
     {
       "id": "task-206",
