@@ -411,10 +411,12 @@ try {
     }
 
     Write-Host ("Ralph Backlog CLI smoke suite passed ({0}/{0} cases)." -f $script:PassedCount) -ForegroundColor Green
+    # The suite intentionally invokes some commands that return non-zero exit codes (negative cases).
+    # Reset the native exit code on success so CI doesn't treat the run as failed.
+    $global:LASTEXITCODE = 0
 }
 finally {
     if ($null -ne $tempDir -and (Test-Path -LiteralPath $tempDir)) {
         Remove-Item -LiteralPath $tempDir -Recurse -Force
     }
 }
-
