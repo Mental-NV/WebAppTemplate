@@ -1,4 +1,5 @@
 # Full-stack Web App Template
+[![CI](https://github.com/Mental-NV/WebAppTemplate/actions/workflows/ci.yml/badge.svg)](https://github.com/Mental-NV/WebAppTemplate/actions/workflows/ci.yml)
 - ASP.NET Core + Minimal API + Vertical Slices + URL versioning + xUnity
 - React + TypeScript + Vite + Vitest + Playwright E2E tests
 - Google Auth (JWT)
