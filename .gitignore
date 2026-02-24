@@ -33,3 +33,6 @@ Thumbs.db
 pr-body.md
 .certs/
 .nuget/packages/
+.ralph/runs/
+.ralph/worktrees/
+.ralph/*.lock
