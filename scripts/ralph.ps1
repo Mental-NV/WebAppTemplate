@@ -442,12 +442,52 @@ function Get-MergeArgs {
         default { throw "Unsupported mergeMethod '$($script:RalphConfig.mergeMethod)'." }
     }
 
-    if ([bool]$script:RalphConfig.deleteBranchOnMerge) {
-        $args += "--delete-branch"
-    }
-
     $args += @("--match-head-commit", $HeadSha)
     return $args
+}
+
+function Remove-TaskBranchAfterMerge {
+    param(
+        [Parameter(Mandatory)]
+        [string]$BranchName
+    )
+
+    if (-not [bool]$script:RalphConfig.deleteBranchOnMerge) {
+        return
+    }
+
+    Write-RalphStep "Post-merge branch cleanup for '$BranchName'"
+
+    try {
+        $localBranchExists = -not [string]::IsNullOrWhiteSpace((Get-TrimmedText (& git -C $script:RepoRoot branch --list $BranchName)))
+        if ($localBranchExists) {
+            & git -C $script:RepoRoot branch -D $BranchName *> $null
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "Deleted local branch '$BranchName'" -ForegroundColor DarkGray
+            }
+            else {
+                Write-Host "Local branch cleanup warning for '$BranchName' (exit $LASTEXITCODE)." -ForegroundColor Yellow
+            }
+        }
+    }
+    catch {
+        Write-Host "Local branch cleanup warning for '$BranchName': $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+
+    try {
+        if (Test-RemoteBranchExists -BranchName $BranchName) {
+            & git -C $script:RepoRoot push origin --delete $BranchName *> $null
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "Deleted remote branch '$BranchName'" -ForegroundColor DarkGray
+            }
+            else {
+                Write-Host "Remote branch cleanup warning for '$BranchName' (exit $LASTEXITCODE)." -ForegroundColor Yellow
+            }
+        }
+    }
+    catch {
+        Write-Host "Remote branch cleanup warning for '$BranchName': $($_.Exception.Message)" -ForegroundColor Yellow
+    }
 }
 
 function Ensure-Directory {
@@ -562,6 +602,7 @@ try {
         $prNumber = $null
         $prUrl = $null
         $taskCompleted = $false
+        $taskMerged = $false
         $currentPrHeadSha = $null
 
         while (-not $taskCompleted) {
@@ -743,11 +784,15 @@ try {
 
             $taskCompleted = $true
             $processedOne = $true
+            $taskMerged = $true
         }
 
         Write-RalphStep "Cleaning worktree for task '$taskId'"
         if (Test-Path -LiteralPath $worktreePath) {
             & git -C $script:RepoRoot worktree remove $worktreePath --force *> $null
+        }
+        if ($taskMerged) {
+            Remove-TaskBranchAfterMerge -BranchName $branchName
         }
 
         if ($Once.IsPresent) {
