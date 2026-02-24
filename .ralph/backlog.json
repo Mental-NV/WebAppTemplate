@@ -221,9 +221,9 @@
         "task-216",
         "task-217"
       ],
-      "status": "New",
-      "startedAt": null,
-      "doneAt": null
+      "status": "Done",
+      "startedAt": "2026-02-24T23:24:55.5570599+00:00",
+      "doneAt": "2026-02-24T23:29:56.6147919+00:00"
     },
     {
       "id": "task-220",
