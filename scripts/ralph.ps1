@@ -251,6 +251,82 @@ function Test-RemoteBranchExists {
     return ($LASTEXITCODE -eq 0)
 }
 
+function Remove-RalphWorktreePath {
+    param(
+        [Parameter(Mandatory)]
+        [string]$WorktreePath,
+        [switch]$ThrowIfNotRemoved
+    )
+
+    $pathExists = Test-Path -LiteralPath $WorktreePath
+    if ($pathExists) {
+        $removeOutputLines = & git -C $script:RepoRoot worktree remove $WorktreePath --force 2>&1
+        $removeExitCode = $LASTEXITCODE
+        if ($removeExitCode -ne 0) {
+            $removeOutput = [string]($removeOutputLines | Out-String)
+            Write-Host "Worktree remove warning for '$WorktreePath' (exit $removeExitCode): $removeOutput" -ForegroundColor Yellow
+        }
+    }
+
+    & git -C $script:RepoRoot worktree prune *> $null
+
+    if (Test-Path -LiteralPath $WorktreePath) {
+        try {
+            Remove-Item -LiteralPath $WorktreePath -Recurse -Force
+        }
+        catch {
+            if ($ThrowIfNotRemoved.IsPresent) {
+                throw "Failed to remove stale Ralph worktree path '$WorktreePath'. $($_.Exception.Message)"
+            }
+
+            Write-Host "Worktree filesystem cleanup warning for '$WorktreePath': $($_.Exception.Message)" -ForegroundColor Yellow
+        }
+
+        & git -C $script:RepoRoot worktree prune *> $null
+    }
+
+    if ($ThrowIfNotRemoved.IsPresent -and (Test-Path -LiteralPath $WorktreePath)) {
+        throw "Ralph worktree path still exists after cleanup: $WorktreePath"
+    }
+}
+
+function Invoke-RalphWorktreeAdd {
+    param(
+        [Parameter(Mandatory)]
+        [string]$BranchName,
+        [Parameter(Mandatory)]
+        [string]$StartPoint,
+        [Parameter(Mandatory)]
+        [string]$WorktreePath,
+        [Parameter(Mandatory)]
+        [string]$StepName
+    )
+
+    $args = @("worktree", "add", "--force", "-B", $BranchName, $WorktreePath, $StartPoint)
+    $display = Format-CommandForDisplay -FilePath "git" -Arguments $args
+
+    for ($attempt = 1; $attempt -le 2; $attempt++) {
+        Write-Host ">> $display" -ForegroundColor DarkGray
+        $outputLines = & git -C $script:RepoRoot @args 2>&1
+        $exitCode = $LASTEXITCODE
+        if ($exitCode -eq 0) {
+            if ($outputLines) {
+                $outputLines | ForEach-Object { Write-Host $_ }
+            }
+            return
+        }
+
+        $output = [string]($outputLines | Out-String)
+        if ($attempt -eq 1 -and $output -match 'already exists') {
+            Write-RalphStep "Detected stale worktree path/metadata for '$WorktreePath'; pruning and retrying worktree add"
+            Remove-RalphWorktreePath -WorktreePath $WorktreePath -ThrowIfNotRemoved
+            continue
+        }
+
+        throw "$StepName failed with exit code $exitCode. $output"
+    }
+}
+
 function Get-BacklogActiveOrTakeNext {
     param(
         [switch]$ResumeOnlyMode
@@ -692,16 +768,14 @@ try {
         Ensure-Directory -Path $taskRunDir
 
         Write-RalphStep "Preparing worktree"
-        if (Test-Path -LiteralPath $worktreePath) {
-            & git -C $script:RepoRoot worktree remove $worktreePath --force *> $null
-        }
+        Remove-RalphWorktreePath -WorktreePath $worktreePath -ThrowIfNotRemoved
 
         $remoteBranchExists = Test-RemoteBranchExists -BranchName $branchName
         if ($remoteBranchExists) {
-            Invoke-External -FilePath "git" -Arguments @("worktree", "add", "--force", "-B", $branchName, $worktreePath, "origin/$branchName") -WorkingDirectory $script:RepoRoot -StepName "git worktree add (resume)"
+            Invoke-RalphWorktreeAdd -BranchName $branchName -WorktreePath $worktreePath -StartPoint "origin/$branchName" -StepName "git worktree add (resume)"
         }
         else {
-            Invoke-External -FilePath "git" -Arguments @("worktree", "add", "--force", "-B", $branchName, $worktreePath, "origin/$baseBranch") -WorkingDirectory $script:RepoRoot -StepName "git worktree add (new)"
+            Invoke-RalphWorktreeAdd -BranchName $branchName -WorktreePath $worktreePath -StartPoint "origin/$baseBranch" -StepName "git worktree add (new)"
         }
 
         Assert-GitWorkingTreeClean -RepoPath $worktreePath
@@ -935,9 +1009,7 @@ try {
         }
 
         Write-RalphStep "Cleaning worktree for task '$taskId'"
-        if (Test-Path -LiteralPath $worktreePath) {
-            & git -C $script:RepoRoot worktree remove $worktreePath --force *> $null
-        }
+        Remove-RalphWorktreePath -WorktreePath $worktreePath
         if ($taskMerged) {
             Remove-TaskBranchAfterMerge -BranchName $branchName
         }
@@ -949,8 +1021,8 @@ try {
 }
 finally {
     try {
-        if ($null -ne $worktreePath -and (Test-Path -LiteralPath $worktreePath)) {
-            & git -C $script:RepoRoot worktree remove $worktreePath --force *> $null
+        if ($null -ne $worktreePath) {
+            Remove-RalphWorktreePath -WorktreePath $worktreePath
         }
     }
     catch {
