@@ -27,9 +27,9 @@
       "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `sandbox/ralph-series/beta.txt` with 2 short lines of text.\n\nAcceptance criteria:\n- `sandbox/ralph-series/beta.txt` exists.\n- File has exactly 2 lines.",
       "priority": 95,
       "dependencies": [],
-      "status": "New",
-      "startedAt": null,
-      "doneAt": null
+      "status": "Done",
+      "startedAt": "2026-02-24T20:02:32.544762+00:00",
+      "doneAt": "2026-02-24T20:18:48.620202+00:00"
     },
     {
       "id": "task-204",
