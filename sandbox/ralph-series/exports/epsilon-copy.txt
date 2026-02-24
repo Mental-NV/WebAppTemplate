@@ -1,0 +1,7 @@
+epsilon fan-in summary
+
+Combined inputs:
+- delta-a.txt: delta branch A
+- delta-b.txt: delta branch B
+
+This file summarizes and combines both delta-a.txt and delta-b.txt.
