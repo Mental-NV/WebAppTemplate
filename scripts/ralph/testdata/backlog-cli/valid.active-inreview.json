@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "task-review",
+      "title": "PR under review",
+      "description": "Used to validate InReview repair transitions.",
+      "priority": 100,
+      "dependencies": [],
+      "status": "InReview",
+      "startedAt": "2026-02-24T11:00:00Z",
+      "doneAt": null
+    },
+    {
+      "id": "task-next",
+      "title": "Next queued task",
+      "description": "Queued while another item is in review.",
+      "priority": 50,
+      "dependencies": [],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    }
+  ]
+}

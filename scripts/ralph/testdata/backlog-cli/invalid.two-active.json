@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "task-progress",
+      "title": "In progress",
+      "description": "First active item.",
+      "priority": 1,
+      "dependencies": [],
+      "status": "InProgress",
+      "startedAt": "2026-02-24T09:00:00Z",
+      "doneAt": null
+    },
+    {
+      "id": "task-review",
+      "title": "In review",
+      "description": "Second active item.",
+      "priority": 1,
+      "dependencies": [],
+      "status": "InReview",
+      "startedAt": "2026-02-24T09:30:00Z",
+      "doneAt": null
+    }
+  ]
+}

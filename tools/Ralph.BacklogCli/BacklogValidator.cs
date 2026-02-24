@@ -193,7 +193,11 @@ public static class BacklogValidator
 
     private static void DetectCycles(BacklogDocument document, ICollection<ValidationIssue> issues)
     {
-        var map = document.Items.ToDictionary(x => x.Id, x => x, StringComparer.Ordinal);
+        var map = new Dictionary<string, BacklogItem>(StringComparer.Ordinal);
+        foreach (var item in document.Items)
+        {
+            map.TryAdd(item.Id, item);
+        }
         var state = new Dictionary<string, int>(StringComparer.Ordinal);
         var stack = new Stack<string>();
 

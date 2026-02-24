@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "task-dup",
+      "title": "Duplicate A",
+      "description": "First duplicate id.",
+      "priority": 1,
+      "dependencies": [],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-dup",
+      "title": "Duplicate B",
+      "description": "Second duplicate id.",
+      "priority": 2,
+      "dependencies": [],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "task-done-1",
+      "title": "Completed 1",
+      "description": "All work is done.",
+      "priority": 10,
+      "dependencies": [],
+      "status": "Done",
+      "startedAt": "2026-02-24T00:00:00Z",
+      "doneAt": "2026-02-24T00:10:00Z"
+    },
+    {
+      "id": "task-done-2",
+      "title": "Completed 2",
+      "description": "All work is done.",
+      "priority": 20,
+      "dependencies": [
+        "task-done-1"
+      ],
+      "status": "Done",
+      "startedAt": "2026-02-24T00:11:00Z",
+      "doneAt": "2026-02-24T00:20:00Z"
+    }
+  ]
+}

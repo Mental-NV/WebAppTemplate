@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "task-a",
+      "title": "Cycle A",
+      "description": "Depends on B.",
+      "priority": 1,
+      "dependencies": [
+        "task-b"
+      ],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-b",
+      "title": "Cycle B",
+      "description": "Depends on A.",
+      "priority": 1,
+      "dependencies": [
+        "task-a"
+      ],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    }
+  ]
+}

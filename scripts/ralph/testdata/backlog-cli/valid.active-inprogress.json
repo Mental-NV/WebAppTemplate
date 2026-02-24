@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "task-active",
+      "title": "Active implementation task",
+      "description": "Currently being worked on.",
+      "priority": 100,
+      "dependencies": [],
+      "status": "InProgress",
+      "startedAt": "2026-02-24T10:00:00Z",
+      "doneAt": null
+    },
+    {
+      "id": "task-ready",
+      "title": "Ready task",
+      "description": "Would be eligible but active item should block take-next.",
+      "priority": 90,
+      "dependencies": [],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    }
+  ]
+}
