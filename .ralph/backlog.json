@@ -7,9 +7,9 @@
       "description": "Work only under `sandbox/ralph-series/`.\n\nCreate the directory `sandbox/ralph-series` if it does not exist and create `sandbox/ralph-series/README.txt` with a short note that this folder is used for Ralph Loop soak testing.\n\nRequirements:\n- Only modify files under `sandbox/ralph-series/`.\n- Do not change repo code/config/docs outside the sandbox.\n\nAcceptance criteria:\n- `sandbox/ralph-series/README.txt` exists.\n- File contains at least 2 human-readable lines.",
       "priority": 100,
       "dependencies": [],
-      "status": "New",
-      "startedAt": null,
-      "doneAt": null
+      "status": "Done",
+      "startedAt": "2026-02-24T19:04:12.3707007+00:00",
+      "doneAt": "2026-02-24T19:22:12.1938895+00:00"
     },
     {
       "id": "task-202",
