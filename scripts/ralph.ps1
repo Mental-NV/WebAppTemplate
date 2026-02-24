@@ -518,6 +518,85 @@ function Remove-TaskBranchAfterMerge {
     }
 }
 
+function Commit-BacklogDoneToMain {
+    param(
+        [Parameter(Mandatory)]
+        [string]$TaskId,
+        [Parameter(Mandatory)]
+        [string]$BaseBranch
+    )
+
+    $configuredBacklogPath = [string]$script:RalphConfig.backlogPath
+    $resolvedBacklogPath = Resolve-RalphPath -PathValue $configuredBacklogPath
+    $backlogPathspec = if ([System.IO.Path]::IsPathRooted($configuredBacklogPath)) {
+        [System.IO.Path]::GetRelativePath($script:RepoRoot, $resolvedBacklogPath)
+    }
+    else {
+        $configuredBacklogPath
+    }
+
+    $backlogPathspec = $backlogPathspec -replace '\\', '/'
+
+    $currentBranch = Get-TrimmedText (& git -C $script:RepoRoot branch --show-current)
+    if ($currentBranch -ne $BaseBranch) {
+        throw "Cannot commit backlog on '$BaseBranch' because repo root is on '$currentBranch'."
+    }
+
+    $backlogStatus = Get-TrimmedText (& git -C $script:RepoRoot status --porcelain -- $backlogPathspec)
+    if ([string]::IsNullOrWhiteSpace($backlogStatus)) {
+        Write-RalphStep "No backlog changes detected to commit for task '$TaskId'"
+        return
+    }
+
+    Write-RalphStep "Committing backlog Done state for '$TaskId' directly to '$BaseBranch'"
+    Invoke-External -FilePath "git" -Arguments @("-C", $script:RepoRoot, "add", "--", $backlogPathspec) -WorkingDirectory $script:RepoRoot -StepName "git add backlog"
+
+    $commitMessage = "chore(ralph): mark $TaskId done"
+    Invoke-External -FilePath "git" -Arguments @("-C", $script:RepoRoot, "commit", "-m", $commitMessage) -WorkingDirectory $script:RepoRoot -StepName "git commit backlog"
+
+    $maxPushAttempts = 3
+    for ($attempt = 1; $attempt -le $maxPushAttempts; $attempt++) {
+        Write-RalphStep "Syncing backlog commit with latest origin/$BaseBranch (attempt $attempt/$maxPushAttempts)"
+        Invoke-External -FilePath "git" -Arguments @("fetch", "origin", "--prune") -WorkingDirectory $script:RepoRoot -StepName "git fetch backlog push"
+
+        $rebaseOutputLines = & git -C $script:RepoRoot rebase "origin/$BaseBranch" 2>&1
+        $rebaseExitCode = $LASTEXITCODE
+        $rebaseOutput = [string]($rebaseOutputLines | Out-String)
+        if ($rebaseExitCode -ne 0) {
+            Write-Host "Backlog rebase failed; attempting rebase --abort" -ForegroundColor Yellow
+            & git -C $script:RepoRoot rebase --abort *> $null
+            $abortExitCode = $LASTEXITCODE
+            if ($abortExitCode -ne 0) {
+                Write-Host "Rebase abort warning (exit $abortExitCode)." -ForegroundColor Yellow
+            }
+
+            throw "Failed to rebase backlog commit onto origin/$BaseBranch. Resolve backlog conflict manually. $rebaseOutput"
+        }
+
+        Write-RalphStep "Pushing backlog commit to origin/$BaseBranch (attempt $attempt/$maxPushAttempts)"
+        $pushOutputLines = & git -C $script:RepoRoot push origin $BaseBranch 2>&1
+        $pushExitCode = $LASTEXITCODE
+        $pushOutput = [string]($pushOutputLines | Out-String)
+        if ($pushExitCode -eq 0) {
+            return
+        }
+
+        $retryablePushFailure =
+            ($pushOutput -match 'non-fast-forward') -or
+            ($pushOutput -match '\[rejected\]') -or
+            ($pushOutput -match 'failed to push some refs')
+
+        if ($retryablePushFailure -and $attempt -lt $maxPushAttempts) {
+            Write-RalphStep "Backlog push raced with another update; retrying after refetch/rebase"
+            continue
+        }
+
+        throw "Failed to push backlog commit to origin/$BaseBranch. $pushOutput"
+    }
+
+    throw "Failed to push backlog commit to origin/$BaseBranch after $maxPushAttempts attempts."
+}
+
 function Ensure-Directory {
     param([Parameter(Mandatory)][string]$Path)
     New-Item -ItemType Directory -Force -Path $Path | Out-Null
@@ -847,6 +926,7 @@ try {
             if (-not $setDone.ok) {
                 throw "Failed to mark backlog item '$taskId' Done: $($setDone | ConvertTo-Json -Depth 20)"
             }
+            Commit-BacklogDoneToMain -TaskId $taskId -BaseBranch $baseBranch
 
             $taskCompleted = $true
             $processedOne = $true
