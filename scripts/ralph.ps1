@@ -251,6 +251,47 @@ function Test-RemoteBranchExists {
     return ($LASTEXITCODE -eq 0)
 }
 
+function Stop-RalphProcessesReferencingWorktree {
+    param(
+        [Parameter(Mandatory)]
+        [string]$WorktreePath
+    )
+
+    if (-not $IsWindows) {
+        return 0
+    }
+
+    $normalizedPath = $WorktreePath.Replace('/', '\')
+    $pathPattern = [regex]::Escape($normalizedPath)
+    $killed = 0
+
+    try {
+        $candidates = Get-CimInstance Win32_Process -ErrorAction Stop | Where-Object {
+            $_.ProcessId -ne $PID -and
+            -not [string]::IsNullOrWhiteSpace($_.CommandLine) -and
+            $_.CommandLine -match $pathPattern
+        }
+    }
+    catch {
+        Write-Host "Process scan warning while cleaning worktree '$WorktreePath': $($_.Exception.Message)" -ForegroundColor Yellow
+        return 0
+    }
+
+    foreach ($proc in @($candidates)) {
+        try {
+            $procName = if ([string]::IsNullOrWhiteSpace($proc.Name)) { "pid-$($proc.ProcessId)" } else { $proc.Name }
+            Write-Host "Stopping lingering process locking Ralph worktree: $procName (PID=$($proc.ProcessId))" -ForegroundColor Yellow
+            Stop-Process -Id ([int]$proc.ProcessId) -Force -ErrorAction Stop
+            $killed++
+        }
+        catch {
+            Write-Host "Process stop warning (PID=$($proc.ProcessId)): $($_.Exception.Message)" -ForegroundColor Yellow
+        }
+    }
+
+    return $killed
+}
+
 function Remove-RalphWorktreePath {
     param(
         [Parameter(Mandatory)]
@@ -258,34 +299,56 @@ function Remove-RalphWorktreePath {
         [switch]$ThrowIfNotRemoved
     )
 
-    $pathExists = Test-Path -LiteralPath $WorktreePath
-    if ($pathExists) {
-        $removeOutputLines = & git -C $script:RepoRoot worktree remove $WorktreePath --force 2>&1
-        $removeExitCode = $LASTEXITCODE
-        if ($removeExitCode -ne 0) {
-            $removeOutput = [string]($removeOutputLines | Out-String)
-            Write-Host "Worktree remove warning for '$WorktreePath' (exit $removeExitCode): $removeOutput" -ForegroundColor Yellow
-        }
-    }
+    $maxAttempts = if ($ThrowIfNotRemoved.IsPresent) { 4 } else { 2 }
+    $lastFsCleanupError = $null
 
-    & git -C $script:RepoRoot worktree prune *> $null
-
-    if (Test-Path -LiteralPath $WorktreePath) {
-        try {
-            Remove-Item -LiteralPath $WorktreePath -Recurse -Force
-        }
-        catch {
-            if ($ThrowIfNotRemoved.IsPresent) {
-                throw "Failed to remove stale Ralph worktree path '$WorktreePath'. $($_.Exception.Message)"
+    for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+        $pathExists = Test-Path -LiteralPath $WorktreePath
+        if ($pathExists) {
+            $removeOutputLines = & git -C $script:RepoRoot worktree remove $WorktreePath --force 2>&1
+            $removeExitCode = $LASTEXITCODE
+            if ($removeExitCode -ne 0) {
+                $removeOutput = [string]($removeOutputLines | Out-String)
+                if ($removeOutput -notmatch 'is not a working tree') {
+                    Write-Host "Worktree remove warning for '$WorktreePath' (exit $removeExitCode): $removeOutput" -ForegroundColor Yellow
+                }
             }
-
-            Write-Host "Worktree filesystem cleanup warning for '$WorktreePath': $($_.Exception.Message)" -ForegroundColor Yellow
         }
 
         & git -C $script:RepoRoot worktree prune *> $null
+
+        if (-not (Test-Path -LiteralPath $WorktreePath)) {
+            return
+        }
+
+        try {
+            Remove-Item -LiteralPath $WorktreePath -Recurse -Force
+            & git -C $script:RepoRoot worktree prune *> $null
+            if (-not (Test-Path -LiteralPath $WorktreePath)) {
+                return
+            }
+        }
+        catch {
+            $lastFsCleanupError = $_
+            Write-Host "Worktree filesystem cleanup warning for '$WorktreePath': $($_.Exception.Message)" -ForegroundColor Yellow
+        }
+
+        if (Test-Path -LiteralPath $WorktreePath -and $attempt -lt $maxAttempts) {
+            $killed = Stop-RalphProcessesReferencingWorktree -WorktreePath $WorktreePath
+            if ($killed -gt 0) {
+                Write-RalphStep "Stopped $killed lingering process(es) referencing Ralph worktree; retrying cleanup"
+            }
+
+            Start-Sleep -Seconds ([Math]::Min(2 * $attempt, 5))
+            continue
+        }
     }
 
     if ($ThrowIfNotRemoved.IsPresent -and (Test-Path -LiteralPath $WorktreePath)) {
+        if ($null -ne $lastFsCleanupError) {
+            throw "Failed to remove stale Ralph worktree path '$WorktreePath'. $($lastFsCleanupError.Exception.Message)"
+        }
+
         throw "Ralph worktree path still exists after cleanup: $WorktreePath"
     }
 }
