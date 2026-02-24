@@ -123,9 +123,9 @@
         "task-209",
         "task-210"
       ],
-      "status": "New",
-      "startedAt": null,
-      "doneAt": null
+      "status": "Done",
+      "startedAt": "2026-02-24T22:47:35.1615468+00:00",
+      "doneAt": "2026-02-24T22:58:33.2839726+00:00"
     },
     {
       "id": "task-212",
