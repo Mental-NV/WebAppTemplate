@@ -1,0 +1,12 @@
+Final aggregate summary
+
+This aggregate combines information from:
+- zeta-report.txt
+- manifest.txt
+- exports/epsilon-copy.txt
+
+zeta-report.txt reports referenced source files in sandbox/ralph-series, including README.txt, gamma.txt, and docs/index.txt, with notes describing each reference.
+
+manifest.txt provides a file listing for the Ralph series sandbox, including core files, docs entries, and zeta-report.txt.
+
+exports/epsilon-copy.txt is an exported epsilon fan-in summary that combines delta-a.txt and delta-b.txt and describes both delta inputs.
