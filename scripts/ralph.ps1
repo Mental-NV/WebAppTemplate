@@ -95,8 +95,13 @@ function Invoke-BacklogCliJson {
         throw "Backlog CLI returned no output (exit code $exitCode) for args: $($Arguments -join ' ')"
     }
 
+    $jsonText = Get-TrailingJsonObject -Text $raw
+    if ([string]::IsNullOrWhiteSpace($jsonText)) {
+        throw "Backlog CLI returned no trailing JSON object (exit code $exitCode) for args: $($Arguments -join ' ')"
+    }
+
     try {
-        $obj = $raw | ConvertFrom-Json -Depth 100
+        $obj = $jsonText | ConvertFrom-Json -Depth 100
     }
     catch {
         throw "Backlog CLI returned non-JSON output (exit code $exitCode): $raw"
@@ -104,6 +109,28 @@ function Invoke-BacklogCliJson {
 
     $obj | Add-Member -NotePropertyName exitCode -NotePropertyValue $exitCode -Force
     return $obj
+}
+
+function Get-TrailingJsonObject {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Text
+    )
+
+    $lines = @($Text -split "`r?`n")
+    $startLineIndex = -1
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        if ($lines[$i].TrimStart().StartsWith("{", [System.StringComparison]::Ordinal)) {
+            $startLineIndex = $i
+            break
+        }
+    }
+
+    if ($startLineIndex -lt 0) {
+        return $null
+    }
+
+    return (($lines[$startLineIndex..($lines.Count - 1)]) -join [Environment]::NewLine).Trim()
 }
 
 function Invoke-GhJson {

@@ -59,8 +59,13 @@ function Invoke-BacklogJson {
         throw "Backlog CLI returned no JSON output for args: $($Arguments -join ' ')"
     }
 
+    $jsonText = Get-TrailingJsonObject -Text $output
+    if ([string]::IsNullOrWhiteSpace($jsonText)) {
+        throw "Backlog CLI returned no trailing JSON object for args: $($Arguments -join ' '). Raw output: $output"
+    }
+
     try {
-        $json = $output | ConvertFrom-Json -Depth 100
+        $json = $jsonText | ConvertFrom-Json -Depth 100
     }
     catch {
         throw "Backlog CLI returned invalid JSON for args: $($Arguments -join ' '). Raw output: $output"
@@ -68,6 +73,28 @@ function Invoke-BacklogJson {
 
     $json | Add-Member -NotePropertyName exitCode -NotePropertyValue $exitCode -Force
     return $json
+}
+
+function Get-TrailingJsonObject {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Text
+    )
+
+    $lines = @($Text -split "`r?`n")
+    $startLineIndex = -1
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        if ($lines[$i].TrimStart().StartsWith("{", [System.StringComparison]::Ordinal)) {
+            $startLineIndex = $i
+            break
+        }
+    }
+
+    if ($startLineIndex -lt 0) {
+        return $null
+    }
+
+    return (($lines[$startLineIndex..($lines.Count - 1)]) -join [Environment]::NewLine).Trim()
 }
 
 function New-TempDirectory {
