@@ -1,3 +1,0 @@
-alpha line 1
-alpha line 2
-alpha line 3
