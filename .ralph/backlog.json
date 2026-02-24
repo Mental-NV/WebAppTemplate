@@ -17,9 +17,9 @@
       "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `sandbox/ralph-series/alpha.txt` with 3 short lines of text.\n\nRequirements:\n- Overwrite the file if it already exists.\n- Keep content plain text (ASCII only).\n\nAcceptance criteria:\n- `sandbox/ralph-series/alpha.txt` exists.\n- File has exactly 3 lines.",
       "priority": 95,
       "dependencies": [],
-      "status": "New",
-      "startedAt": null,
-      "doneAt": null
+      "status": "Done",
+      "startedAt": "2026-02-24T19:43:47.9908936+00:00",
+      "doneAt": "2026-02-24T20:02:05.577519+00:00"
     },
     {
       "id": "task-203",
