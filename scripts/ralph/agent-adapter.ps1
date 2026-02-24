@@ -18,6 +18,17 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+function Write-AgentLog {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Message,
+        [System.ConsoleColor]$Color = [System.ConsoleColor]::DarkCyan
+    )
+
+    $timestamp = [DateTimeOffset]::UtcNow.ToString("o")
+    Write-Host "[$timestamp] [Ralph-Agent] $Message" -ForegroundColor $Color
+}
+
 function Resolve-ProcessLaunchSpec {
     param(
         [Parameter(Mandatory)]
@@ -82,9 +93,9 @@ if (-not [string]::IsNullOrWhiteSpace($env:RALPH_CODEX_MODEL)) {
 
 $startedAt = [DateTimeOffset]::UtcNow
 $launchSpec = Resolve-ProcessLaunchSpec -CommandName $codexCmd -CommandArguments $argList
-Write-Host "[Ralph-Agent] Launching Codex via $($launchSpec.LauncherKind): $($launchSpec.FilePath)" -ForegroundColor DarkCyan
-Write-Host "[Ralph-Agent] Prompt: $PromptFile" -ForegroundColor DarkGray
-Write-Host "[Ralph-Agent] Logs: stdout=$stdoutPath stderr=$stderrPath" -ForegroundColor DarkGray
+Write-AgentLog -Message "Launching Codex via $($launchSpec.LauncherKind): $($launchSpec.FilePath)"
+Write-AgentLog -Message "Prompt: $PromptFile" -Color DarkGray
+Write-AgentLog -Message "Logs: stdout=$stdoutPath stderr=$stderrPath" -Color DarkGray
 
 $proc = Start-Process `
     -FilePath $launchSpec.FilePath `
@@ -93,11 +104,42 @@ $proc = Start-Process `
     -RedirectStandardInput $PromptFile `
     -RedirectStandardOutput $stdoutPath `
     -RedirectStandardError $stderrPath `
-    -PassThru `
-    -Wait
+    -PassThru
+
+$turnCompletedObservedAt = $null
+$turnCompletedLine = $null
+$nextWaitProgressLogAt = $startedAt.AddMinutes(1)
+
+while (-not $proc.HasExited) {
+    Start-Sleep -Seconds 2
+    $proc.Refresh()
+
+    if ($null -eq $turnCompletedObservedAt -and (Test-Path -LiteralPath $stdoutPath)) {
+        try {
+            $match = Select-String -Path $stdoutPath -SimpleMatch '"type":"turn.completed"' | Select-Object -First 1
+            if ($null -ne $match) {
+                $turnCompletedObservedAt = [DateTimeOffset]::UtcNow
+                $turnCompletedLine = [string]$match.Line
+                Write-AgentLog -Message "Observed turn.completed in stdout log; waiting for Codex process to exit..." -Color Yellow
+                $nextWaitProgressLogAt = $turnCompletedObservedAt.AddMinutes(1)
+            }
+        }
+        catch {
+            Write-AgentLog -Message "Warning: failed to scan stdout log for turn.completed ($($_.Exception.Message)); will retry." -Color Yellow
+        }
+    }
+
+    if ($null -ne $turnCompletedObservedAt -and [DateTimeOffset]::UtcNow -ge $nextWaitProgressLogAt) {
+        $waitSeconds = [math]::Round(([DateTimeOffset]::UtcNow - $turnCompletedObservedAt).TotalSeconds, 1)
+        Write-AgentLog -Message "Still waiting for Codex process exit after turn.completed ($waitSeconds s elapsed)." -Color Yellow
+        $nextWaitProgressLogAt = [DateTimeOffset]::UtcNow.AddMinutes(1)
+    }
+}
+
+$proc.WaitForExit()
 
 $completedAt = [DateTimeOffset]::UtcNow
-Write-Host "[Ralph-Agent] Codex process exited with code $($proc.ExitCode)" -ForegroundColor DarkCyan
+Write-AgentLog -Message "Codex process exited with code $($proc.ExitCode)"
 
 $result = [ordered]@{
     taskId = $TaskId
@@ -114,6 +156,9 @@ $result = [ordered]@{
     arguments = $argList
     startedAtUtc = $startedAt.ToString("o")
     completedAtUtc = $completedAt.ToString("o")
+    turnCompletedObservedAtUtc = if ($null -eq $turnCompletedObservedAt) { $null } else { $turnCompletedObservedAt.ToString("o") }
+    turnCompletedObservedLine = $turnCompletedLine
+    postTurnCompletedToExitSeconds = if ($null -eq $turnCompletedObservedAt) { $null } else { [math]::Round(($completedAt - $turnCompletedObservedAt).TotalSeconds, 3) }
     exitCode = $proc.ExitCode
     stdoutPath = $stdoutPath
     stderrPath = $stderrPath

@@ -200,7 +200,8 @@ function Write-RalphStep {
     )
 
     $script:RalphStepCounter++
-    Write-Host ("[Ralph:{0}] {1}" -f $script:RalphStepCounter, $Message) -ForegroundColor Cyan
+    $timestamp = [DateTimeOffset]::UtcNow.ToString("o")
+    Write-Host ("[{0}] [Ralph:{1}] {2}" -f $timestamp, $script:RalphStepCounter, $Message) -ForegroundColor Cyan
 }
 
 function Get-TrimmedText {
