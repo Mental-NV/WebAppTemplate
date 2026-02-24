@@ -235,9 +235,9 @@
         "task-219",
         "task-212"
       ],
-      "status": "New",
-      "startedAt": null,
-      "doneAt": null
+      "status": "Done",
+      "startedAt": "2026-02-24T23:36:20.5799478+00:00",
+      "doneAt": "2026-02-24T23:42:41.2152773+00:00"
     }
   ]
 }
