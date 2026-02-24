@@ -18,6 +18,36 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+function Resolve-ProcessLaunchSpec {
+    param(
+        [Parameter(Mandatory)]
+        [string]$CommandName,
+        [Parameter(Mandatory)]
+        [string[]]$CommandArguments
+    )
+
+    $commandInfo = Get-Command -Name $CommandName -ErrorAction Stop
+    $resolvedPath = if (-not [string]::IsNullOrWhiteSpace($commandInfo.Path)) { $commandInfo.Path } else { $null }
+
+    if ($commandInfo.CommandType -eq [System.Management.Automation.CommandTypes]::ExternalScript -and
+        -not [string]::IsNullOrWhiteSpace($resolvedPath) -and
+        [System.IO.Path]::GetExtension($resolvedPath).Equals(".ps1", [System.StringComparison]::OrdinalIgnoreCase)) {
+        return [pscustomobject]@{
+            FilePath = "pwsh"
+            ArgumentList = @("-NoLogo", "-NoProfile", "-File", $resolvedPath) + $CommandArguments
+            ResolvedCommandPath = $resolvedPath
+            LauncherKind = "PwshExternalScript"
+        }
+    }
+
+    return [pscustomobject]@{
+        FilePath = $CommandName
+        ArgumentList = $CommandArguments
+        ResolvedCommandPath = $resolvedPath
+        LauncherKind = "Direct"
+    }
+}
+
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 
 $stdoutPath = Join-Path -Path $OutputDir -ChildPath "agent.stdout.log"
@@ -41,10 +71,11 @@ if (-not [string]::IsNullOrWhiteSpace($env:RALPH_CODEX_MODEL)) {
 }
 
 $startedAt = [DateTimeOffset]::UtcNow
+$launchSpec = Resolve-ProcessLaunchSpec -CommandName $codexCmd -CommandArguments $argList
 
 $proc = Start-Process `
-    -FilePath $codexCmd `
-    -ArgumentList $argList `
+    -FilePath $launchSpec.FilePath `
+    -ArgumentList $launchSpec.ArgumentList `
     -WorkingDirectory $WorktreePath `
     -RedirectStandardInput $PromptFile `
     -RedirectStandardOutput $stdoutPath `
@@ -62,6 +93,10 @@ $result = [ordered]@{
     worktreePath = $WorktreePath
     promptFile = $PromptFile
     command = $codexCmd
+    resolvedCommandPath = $launchSpec.ResolvedCommandPath
+    launcherKind = $launchSpec.LauncherKind
+    launcherCommand = $launchSpec.FilePath
+    launcherArguments = $launchSpec.ArgumentList
     arguments = $argList
     startedAtUtc = $startedAt.ToString("o")
     completedAtUtc = $completedAt.ToString("o")
