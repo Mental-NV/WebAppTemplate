@@ -418,14 +418,42 @@ function Get-PrChecks {
     }
     $args += @("--json", "name,bucket,state,workflow,link")
 
-    $checks = Invoke-GhJson -Arguments $args -AllowedExitCodes @(0, 1, 8) -AllowPlainTextFallback
-    if ($null -eq $checks) {
+    $outputLines = & gh @args 2>&1
+    $exitCode = $LASTEXITCODE
+    $output = [string]($outputLines | Out-String)
+
+    if ($exitCode -notin @(0, 1, 8)) {
+        throw "gh $($args -join ' ') failed with exit code $exitCode. $output"
+    }
+
+    if ([string]::IsNullOrWhiteSpace($output)) {
         return @()
     }
 
-    $normalized = @($checks)
-    Write-Output -NoEnumerate $normalized
-    return
+    try {
+        $checks = $output | ConvertFrom-Json -Depth 100
+        $normalized = @($checks)
+        Write-Output -NoEnumerate $normalized
+        return
+    }
+    catch {
+        if ($output -match 'no required checks reported') {
+            return @()
+        }
+
+        # Transient GitHub/GraphQL/network issue: treat as a pending pseudo-check so Ralph retries.
+        $message = ($output -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1)
+        Write-RalphStep "Warning: failed to query PR checks (transient); retrying. $message"
+        $pseudo = [pscustomobject]@{
+            name = "gh-pr-checks-query"
+            bucket = "pending"
+            state = "PENDING"
+            workflow = "Ralph"
+            link = $null
+        }
+        Write-Output -NoEnumerate @($pseudo)
+        return
+    }
 }
 
 function Get-MergeArgs {
@@ -768,12 +796,50 @@ try {
 
             Write-RalphStep "Merging PR #$prNumber for task '$taskId'"
             $mergeArgs = Get-MergeArgs -PrNumber $prNumber -HeadSha $currentPrHeadSha
-            Invoke-External -FilePath "gh" -Arguments $mergeArgs -WorkingDirectory $script:RepoRoot -StepName "gh pr merge"
+            $mergeOutputLines = & gh @mergeArgs 2>&1
+            $mergeExitCode = $LASTEXITCODE
+            $mergeOutput = [string]($mergeOutputLines | Out-String)
+            $autoMergeRequested = $false
 
-            Invoke-External -FilePath "git" -Arguments @("fetch", "origin", "--prune") -WorkingDirectory $script:RepoRoot -StepName "git fetch post-merge"
-            $mergedPr = Invoke-GhJson -Arguments @("pr", "view", "$prNumber", "--json", "state,mergedAt,mergeCommit")
-            if ($null -eq $mergedPr.mergedAt) {
-                throw "PR #$prNumber did not report mergedAt after merge."
+            if ($mergeExitCode -ne 0) {
+                if ($mergeOutput -match 'base branch policy prohibits the merge' -or $mergeOutput -match 'add the `--auto` flag') {
+                    Write-RalphStep "Direct merge blocked by branch policy for PR #$prNumber; requesting auto-merge"
+                    $autoMergeArgs = @($mergeArgs + @("--auto"))
+                    $autoMergeOutputLines = & gh @autoMergeArgs 2>&1
+                    $autoMergeExitCode = $LASTEXITCODE
+                    $autoMergeOutput = [string]($autoMergeOutputLines | Out-String)
+                    if ($autoMergeExitCode -ne 0) {
+                        throw "gh pr merge --auto failed with exit code $autoMergeExitCode. $autoMergeOutput"
+                    }
+
+                    $autoMergeRequested = $true
+                }
+                else {
+                    throw "gh pr merge failed with exit code $mergeExitCode. $mergeOutput"
+                }
+            }
+
+            if ($autoMergeRequested) {
+                Write-RalphStep "Waiting for PR #$prNumber to merge after auto-merge request"
+            }
+
+            while ($true) {
+                Invoke-External -FilePath "git" -Arguments @("fetch", "origin", "--prune") -WorkingDirectory $script:RepoRoot -StepName "git fetch post-merge"
+                $mergedPr = Invoke-GhJson -Arguments @("pr", "view", "$prNumber", "--json", "state,mergedAt,mergeCommit,mergeStateStatus")
+                if ($null -ne $mergedPr.mergedAt) {
+                    break
+                }
+
+                if ([string]$mergedPr.state -ne "OPEN") {
+                    throw "PR #$prNumber is not open and not merged (state=$($mergedPr.state))."
+                }
+
+                if (-not $autoMergeRequested) {
+                    throw "PR #$prNumber did not report mergedAt after merge."
+                }
+
+                Write-RalphStep "PR #$prNumber auto-merge pending (mergeStateStatus=$($mergedPr.mergeStateStatus)); polling again"
+                Start-Sleep -Seconds $pollSeconds
             }
 
             Write-RalphStep "Marking backlog item '$taskId' as Done"
