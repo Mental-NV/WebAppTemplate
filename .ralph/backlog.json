@@ -183,9 +183,9 @@
       "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `tie-a.txt` with one line. This task shares the same priority as another task to exercise id tie-breaking.\n\nAcceptance criteria:\n- `sandbox/ralph-series/tie-a.txt` exists.",
       "priority": 42,
       "dependencies": [],
-      "status": "New",
-      "startedAt": null,
-      "doneAt": null
+      "status": "Done",
+      "startedAt": "2026-02-24T23:12:43.8484116+00:00",
+      "doneAt": "2026-02-24T23:18:09.866602+00:00"
     },
     {
       "id": "task-217",
