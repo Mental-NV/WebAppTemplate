@@ -17,9 +17,9 @@
       "description": "Create docs/RalphLoop.md with a high-level design document for Ralph Loop.\n\nScope:\n- Describe the purpose of Ralph Loop and the single-agent / 1-WIP execution model.\n- Describe the main workflow from backlog selection through branch creation, Codex execution, PR creation, CI/review repair loop, merge, and backlog completion.\n- Include all backlog item states and transition rules (New, InProgress, InReview, Done).\n- Include failure/recovery behaviors at a high level (CI failures, review changes requested, max repair cycles, resume after interruption).\n- Document key files/components (backlog.json, config.json, scripts/ralph.ps1, agent adapter, feedback collector, backlog CLI).\n\nRequirements:\n- Documentation should be high-level and operationally useful.\n- Use Markdown headings and concise sections.\n- Do not rewrite implementation code; explain workflow and state machine.\n\nAcceptance criteria:\n- docs/RalphLoop.md exists and is readable.\n- Loop states and transitions are explicitly documented.\n- Workflow includes repair/retry and merge completion paths.",
       "priority": 90,
       "dependencies": [],
-      "status": "New",
-      "startedAt": null,
-      "doneAt": null
+      "status": "Done",
+      "startedAt": "2026-02-24T16:07:28.8600139+00:00",
+      "doneAt": "2026-02-24T16:54:58.3322152+00:00"
     },
     {
       "id": "task-103",
