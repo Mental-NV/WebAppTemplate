@@ -1,3 +1,4 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -56,7 +57,8 @@ public static class BacklogStore
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             WriteIndented = true,
             PropertyNameCaseInsensitive = false,
-            UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
+            UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
 
         options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));

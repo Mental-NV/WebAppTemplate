@@ -17,6 +17,7 @@ $script:RalphRunId = $null
 $script:RalphConfig = $null
 $script:RepoRoot = Split-Path -Parent $PSScriptRoot
 $worktreePath = $null
+$script:RalphStepCounter = 0
 
 function Resolve-RalphPath {
     param(
@@ -190,6 +191,16 @@ function Assert-GitWorkingTreeClean {
     if (-not [string]::IsNullOrWhiteSpace($status)) {
         throw "Git working tree is not clean at '$RepoPath'."
     }
+}
+
+function Write-RalphStep {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Message
+    )
+
+    $script:RalphStepCounter++
+    Write-Host ("[Ralph:{0}] {1}" -f $script:RalphStepCounter, $Message) -ForegroundColor Cyan
 }
 
 function Get-TrimmedText {
@@ -412,7 +423,9 @@ function Get-PrChecks {
         return @()
     }
 
-    return @($checks)
+    $normalized = @($checks)
+    Write-Output -NoEnumerate $normalized
+    return
 }
 
 function Get-MergeArgs {
@@ -471,6 +484,7 @@ try {
     $pollSeconds = if ($PollIntervalSeconds -gt 0) { $PollIntervalSeconds } else { [int]$script:RalphConfig.pollIntervalSeconds }
     $maxRepairCycles = [int]$script:RalphConfig.maxRepairCycles
 
+    Write-RalphStep "Loading Ralph config and acquiring loop lock"
     Acquire-RalphLock
     Ensure-Directory -Path (Resolve-RalphPath -PathValue ".ralph")
     Ensure-Directory -Path $runArtifactsRoot
@@ -478,6 +492,7 @@ try {
     Write-Host "Running Ralph loop..." -ForegroundColor Cyan
     Write-Host "Base branch: $baseBranch | Worktree: $worktreePath" -ForegroundColor Gray
 
+    Write-RalphStep "Running preflight checks (commands, git state, GitHub auth)"
     Assert-CommandAvailable -Name "git"
     Assert-CommandAvailable -Name "gh"
     Assert-CommandAvailable -Name "dotnet"
@@ -493,6 +508,7 @@ try {
     $repoInfo = Invoke-GhJson -Arguments @("repo", "view", "--json", "nameWithOwner,defaultBranchRef")
     Assert-DefaultBranchMatchesConfig -RepoInfo $repoInfo -BaseBranch $baseBranch
 
+    Write-RalphStep "Validating backlog"
     $validate = Invoke-BacklogCliJson -Arguments @("validate")
     if (-not $validate.ok) {
         throw "Backlog validation failed: $($validate | ConvertTo-Json -Depth 20)"
@@ -503,8 +519,10 @@ try {
             break
         }
 
+        Write-RalphStep "Refreshing origin/$baseBranch"
         Invoke-External -FilePath "git" -Arguments @("fetch", "origin", "--prune") -WorkingDirectory $script:RepoRoot -StepName "git fetch"
 
+        Write-RalphStep "Selecting backlog item (resume active or take next)"
         $item = Get-BacklogActiveOrTakeNext -ResumeOnlyMode:$ResumeOnly
         if ($null -eq $item) {
             Write-Host "No eligible backlog items remain. Ralph complete." -ForegroundColor Green
@@ -519,11 +537,13 @@ try {
         $taskTitle = [string]$item.title
         $taskDescription = [string]$item.description
         $branchName = "$branchPrefix/$taskId"
+        Write-RalphStep "Working task '$taskId' on branch '$branchName'"
 
         $runId = Get-OrCreateRunId
         $taskRunDir = Join-Path -Path $runArtifactsRoot -ChildPath (Join-Path -Path $runId -ChildPath $taskId)
         Ensure-Directory -Path $taskRunDir
 
+        Write-RalphStep "Preparing worktree"
         if (Test-Path -LiteralPath $worktreePath) {
             & git -C $script:RepoRoot worktree remove $worktreePath --force *> $null
         }
@@ -547,17 +567,20 @@ try {
         while (-not $taskCompleted) {
             $attemptDir = Join-Path -Path $taskRunDir -ChildPath ("attempt-" + ($repairCount + 1))
             Ensure-Directory -Path $attemptDir
+            Write-RalphStep "Task '$taskId' attempt $($repairCount + 1): preparing prompt"
 
             $promptFile = Join-Path -Path $attemptDir -ChildPath "prompt.md"
             if ($repairCount -eq 0) {
                 Write-ExecuteTaskPrompt -TaskId $taskId -Title $taskTitle -Description $taskDescription -BranchName $branchName -OutputPath $promptFile
             }
             else {
+                Write-RalphStep "Task '$taskId' attempt $($repairCount + 1): collecting PR feedback for repair"
                 & $feedbackCollectorScript -RepoRoot $script:RepoRoot -PrNumber $prNumber -BranchName $branchName -ExpectedHeadSha $currentPrHeadSha -OutputDir $attemptDir
                 $feedbackPacket = Join-Path -Path $attemptDir -ChildPath "feedback.json"
                 Write-RepairPrompt -TaskId $taskId -Title $taskTitle -Description $taskDescription -PrNumber $prNumber -PrUrl $prUrl -FeedbackPacketPath $feedbackPacket -OutputPath $promptFile
             }
 
+            Write-RalphStep "Task '$taskId' attempt $($repairCount + 1): invoking Codex agent"
             & $agentAdapterScript `
                 -RepoRoot $script:RepoRoot `
                 -WorktreePath $worktreePath `
@@ -567,6 +590,7 @@ try {
                 -AttemptNumber ($repairCount + 1) `
                 -OutputDir $attemptDir
 
+            Write-RalphStep "Task '$taskId' attempt $($repairCount + 1): running local validations and git checks"
             Run-LocalValidationCommands -WorktreePath $worktreePath
 
             $wtBranch = Get-TrimmedText (& git -C $worktreePath branch --show-current)
@@ -583,6 +607,7 @@ try {
                 Invoke-External -FilePath "git" -Arguments @("-C", $worktreePath, "push", "-u", "origin", $branchName) -WorkingDirectory $script:RepoRoot -StepName "git push fallback"
             }
 
+            Write-RalphStep "Task '$taskId' attempt $($repairCount + 1): locating or creating PR"
             $prList = Invoke-GhJson -Arguments @(
                 "pr", "list",
                 "--head", $branchName,
@@ -599,10 +624,12 @@ try {
                 $prUrl = (Invoke-GhText -Arguments @("pr", "create", "--base", $baseBranch, "--head", $branchName, "--title", $prTitle, "--body-file", $prBodyFile)).Trim()
                 $prView = Invoke-GhJson -Arguments @("pr", "view", $branchName, "--json", "number,url,headRefOid,headRefName,state,mergeable,mergeStateStatus,reviewDecision,statusCheckRollup,reviews,comments")
                 $prNumber = [int]$prView.number
+                Write-RalphStep "Created PR #$prNumber for task '$taskId'"
             }
             else {
                 $prNumber = [int]$prListItems[0].number
                 $prUrl = [string]$prListItems[0].url
+                Write-RalphStep "Using existing PR #$prNumber for task '$taskId'"
             }
 
             $currentBacklogItemEnvelope = Invoke-BacklogCliJson -Arguments @("show", "--id", $taskId)
@@ -610,6 +637,7 @@ try {
                 throw "Failed to load backlog item '$taskId': $($currentBacklogItemEnvelope | ConvertTo-Json -Depth 20)"
             }
             if ($currentBacklogItemEnvelope.data.found -and [string]$currentBacklogItemEnvelope.data.item.status -eq "InProgress") {
+                Write-RalphStep "Setting backlog item '$taskId' status to InReview"
                 $setReview = Invoke-BacklogCliJson -Arguments @("status", "set", "--id", $taskId, "--to", "InReview")
                 if (-not $setReview.ok) {
                     throw "Failed to set backlog item '$taskId' to InReview: $($setReview | ConvertTo-Json -Depth 20)"
@@ -619,6 +647,7 @@ try {
             $repairNeeded = $false
             $readyToMerge = $false
 
+            Write-RalphStep "Polling PR #$prNumber checks/reviews for task '$taskId'"
             while (-not $repairNeeded -and -not $readyToMerge) {
                 $prView = Invoke-GhJson -Arguments @(
                     "pr", "view", "$prNumber",
@@ -636,7 +665,9 @@ try {
                 }
 
                 $checks = Get-PrChecks -PrNumber $prNumber
-                if ($checks.Count -eq 0) {
+                $checksCount = @($checks).Count
+                if ($checksCount -eq 0) {
+                    Write-RalphStep "PR #$prNumber has no required checks; waiting for mergeable/review state"
                     if (([string]$prView.mergeable -eq "MERGEABLE") -and ([string]$prView.mergeStateStatus -notin @("DIRTY", "BEHIND"))) {
                         $readyToMerge = $true
                         break
@@ -648,8 +679,12 @@ try {
 
                 $hasFail = @($checks | Where-Object { $_.bucket -eq "fail" }).Count -gt 0
                 $hasPending = @($checks | Where-Object { $_.bucket -in @("pending", "cancel") }).Count -gt 0
+                if ($hasPending) {
+                    Write-RalphStep "PR #$prNumber checks pending ($checksCount required checks observed); polling again"
+                }
 
                 if ($hasFail) {
+                    Write-RalphStep "PR #$prNumber has failed required checks; entering repair loop"
                     $repairNeeded = $true
                     break
                 }
@@ -673,6 +708,7 @@ try {
                     throw "Max repair cycles exceeded for $taskId."
                 }
 
+                Write-RalphStep "Task '$taskId' repair attempt required; setting status back to InProgress"
                 $setInProgress = Invoke-BacklogCliJson -Arguments @("status", "set", "--id", $taskId, "--to", "InProgress")
                 if (-not $setInProgress.ok) {
                     throw "Failed to set backlog item '$taskId' back to InProgress: $($setInProgress | ConvertTo-Json -Depth 20)"
@@ -689,6 +725,7 @@ try {
                 break
             }
 
+            Write-RalphStep "Merging PR #$prNumber for task '$taskId'"
             $mergeArgs = Get-MergeArgs -PrNumber $prNumber -HeadSha $currentPrHeadSha
             Invoke-External -FilePath "gh" -Arguments $mergeArgs -WorkingDirectory $script:RepoRoot -StepName "gh pr merge"
 
@@ -698,6 +735,7 @@ try {
                 throw "PR #$prNumber did not report mergedAt after merge."
             }
 
+            Write-RalphStep "Marking backlog item '$taskId' as Done"
             $setDone = Invoke-BacklogCliJson -Arguments @("status", "set", "--id", $taskId, "--to", "Done")
             if (-not $setDone.ok) {
                 throw "Failed to mark backlog item '$taskId' Done: $($setDone | ConvertTo-Json -Depth 20)"
@@ -707,6 +745,7 @@ try {
             $processedOne = $true
         }
 
+        Write-RalphStep "Cleaning worktree for task '$taskId'"
         if (Test-Path -LiteralPath $worktreePath) {
             & git -C $script:RepoRoot worktree remove $worktreePath --force *> $null
         }
