@@ -2,9 +2,9 @@
   "version": 1,
   "items": [
     {
-      "id": "task-001",
-      "title": "Add backlog CLI",
-      "description": "Create a .NET CLI to validate and mutate .ralph/backlog.json.\nMust enforce 1 WIP invariant.\nReturn JSON outputs for scripts.",
+      "id": "task-101",
+      "title": "Add CI GitHub Actions badge to README",
+      "description": "Update README.md to include a GitHub Actions status badge for the CI workflow defined in .github/workflows/ci.yml.\n\nRequirements:\n- Add a visible badge near the top of README.md (title/header area).\n- Badge should point to the CI workflow page in this repository.\n- Use the standard GitHub Actions badge URL for workflow file ci.yml.\n- Keep existing README content intact aside from the badge placement.\n\nAcceptance criteria:\n- README.md renders a CI badge in GitHub.\n- Badge links to the CI workflow page.\n- No unrelated README edits.",
       "priority": 100,
       "dependencies": [],
       "status": "New",
@@ -12,13 +12,11 @@
       "doneAt": null
     },
     {
-      "id": "task-002",
-      "title": "Add Ralph loop",
-      "description": "Add scripts/ralph.ps1 orchestration.\nDepends on backlog CLI.",
+      "id": "task-102",
+      "title": "Write Ralph Loop high-level design documentation",
+      "description": "Create docs/RalphLoop.md with a high-level design document for Ralph Loop.\n\nScope:\n- Describe the purpose of Ralph Loop and the single-agent / 1-WIP execution model.\n- Describe the main workflow from backlog selection through branch creation, Codex execution, PR creation, CI/review repair loop, merge, and backlog completion.\n- Include all backlog item states and transition rules (New, InProgress, InReview, Done).\n- Include failure/recovery behaviors at a high level (CI failures, review changes requested, max repair cycles, resume after interruption).\n- Document key files/components (backlog.json, config.json, scripts/ralph.ps1, agent adapter, feedback collector, backlog CLI).\n\nRequirements:\n- Documentation should be high-level and operationally useful.\n- Use Markdown headings and concise sections.\n- Do not rewrite implementation code; explain workflow and state machine.\n\nAcceptance criteria:\n- docs/RalphLoop.md exists and is readable.\n- Loop states and transitions are explicitly documented.\n- Workflow includes repair/retry and merge completion paths.",
       "priority": 90,
-      "dependencies": [
-        "task-001"
-      ],
+      "dependencies": [],
       "status": "New",
       "startedAt": null,
       "doneAt": null
