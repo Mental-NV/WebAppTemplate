@@ -2,34 +2,242 @@
   "version": 1,
   "items": [
     {
-      "id": "task-101",
-      "title": "Add CI GitHub Actions badge to README",
-      "description": "Update README.md to include a GitHub Actions status badge for the CI workflow defined in .github/workflows/ci.yml.\n\nRequirements:\n- Add a visible badge near the top of README.md (title/header area).\n- Badge should point to the CI workflow page in this repository.\n- Use the standard GitHub Actions badge URL for workflow file ci.yml.\n- Keep existing README content intact aside from the badge placement.\n\nAcceptance criteria:\n- README.md renders a CI badge in GitHub.\n- Badge links to the CI workflow page.\n- No unrelated README edits.",
+      "id": "task-201",
+      "title": "Create sandbox root marker file",
+      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate the directory `sandbox/ralph-series` if it does not exist and create `sandbox/ralph-series/README.txt` with a short note that this folder is used for Ralph Loop soak testing.\n\nRequirements:\n- Only modify files under `sandbox/ralph-series/`.\n- Do not change repo code/config/docs outside the sandbox.\n\nAcceptance criteria:\n- `sandbox/ralph-series/README.txt` exists.\n- File contains at least 2 human-readable lines.",
       "priority": 100,
       "dependencies": [],
-      "status": "Done",
-      "startedAt": "2026-02-24T15:37:47.2094274+00:00",
-      "doneAt": "2026-02-24T15:59:41.5660553+00:00"
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
     },
     {
-      "id": "task-102",
-      "title": "Write Ralph Loop high-level design documentation",
-      "description": "Create docs/RalphLoop.md with a high-level design document for Ralph Loop.\n\nScope:\n- Describe the purpose of Ralph Loop and the single-agent / 1-WIP execution model.\n- Describe the main workflow from backlog selection through branch creation, Codex execution, PR creation, CI/review repair loop, merge, and backlog completion.\n- Include all backlog item states and transition rules (New, InProgress, InReview, Done).\n- Include failure/recovery behaviors at a high level (CI failures, review changes requested, max repair cycles, resume after interruption).\n- Document key files/components (backlog.json, config.json, scripts/ralph.ps1, agent adapter, feedback collector, backlog CLI).\n\nRequirements:\n- Documentation should be high-level and operationally useful.\n- Use Markdown headings and concise sections.\n- Do not rewrite implementation code; explain workflow and state machine.\n\nAcceptance criteria:\n- docs/RalphLoop.md exists and is readable.\n- Loop states and transitions are explicitly documented.\n- Workflow includes repair/retry and merge completion paths.",
+      "id": "task-202",
+      "title": "Create alpha note file",
+      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `sandbox/ralph-series/alpha.txt` with 3 short lines of text.\n\nRequirements:\n- Overwrite the file if it already exists.\n- Keep content plain text (ASCII only).\n\nAcceptance criteria:\n- `sandbox/ralph-series/alpha.txt` exists.\n- File has exactly 3 lines.",
+      "priority": 95,
+      "dependencies": [],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-203",
+      "title": "Create beta note file",
+      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `sandbox/ralph-series/beta.txt` with 2 short lines of text.\n\nAcceptance criteria:\n- `sandbox/ralph-series/beta.txt` exists.\n- File has exactly 2 lines.",
+      "priority": 95,
+      "dependencies": [],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-204",
+      "title": "Append timestamp line to alpha",
+      "description": "Work only under `sandbox/ralph-series/`.\n\nAppend one new line to `alpha.txt` that starts with `updated:`.\n\nRequirements:\n- Preserve existing content in `alpha.txt`.\n- If `alpha.txt` is missing, fail by creating a clear change that depends on `task-202` (this task already depends on it).\n\nAcceptance criteria:\n- `alpha.txt` contains one appended line beginning with `updated:`.",
       "priority": 90,
-      "dependencies": [],
-      "status": "Done",
-      "startedAt": "2026-02-24T16:07:28.8600139+00:00",
-      "doneAt": "2026-02-24T16:54:58.3322152+00:00"
+      "dependencies": [
+        "task-202"
+      ],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
     },
     {
-      "id": "task-103",
-      "title": "Add explicit CI step to validate real Ralph backlog",
-      "description": "Update .github/workflows/ci.yml to add an explicit step in the Ralph smoke job (or equivalent lightweight CI path) that runs `pwsh -NoLogo -NoProfile -File ./scripts/ralph/backlog.ps1 validate` against the repository's real `.ralph/backlog.json`.\n\nRequirements:\n- Keep the existing Ralph smoke suite step (`scripts/ralph/smoke-backlog-cli.ps1`).\n- Add a separate, explicit validation step for the actual backlog file.\n- The step should fail CI if `.ralph/backlog.json` is invalid.\n- Prefer placing the explicit validate step before the smoke suite.\n\nAcceptance criteria:\n- `.github/workflows/ci.yml` contains a dedicated backlog validation step using `backlog.ps1 validate`.\n- Existing Ralph smoke job still runs.\n- Workflow YAML remains valid.",
-      "priority": 80,
+      "id": "task-205",
+      "title": "Create gamma from alpha and beta summary",
+      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `gamma.txt` summarizing `alpha.txt` and `beta.txt` (for example, file names and line counts).\n\nRequirements:\n- Read both source files.\n- Produce a deterministic text format.\n\nAcceptance criteria:\n- `sandbox/ralph-series/gamma.txt` exists.\n- It mentions both `alpha.txt` and `beta.txt`.",
+      "priority": 85,
+      "dependencies": [
+        "task-202",
+        "task-203"
+      ],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-206",
+      "title": "Create nested docs folder and note",
+      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `sandbox/ralph-series/docs/note-206.txt` with a short message.\n\nAcceptance criteria:\n- Nested folder `docs` exists.\n- `note-206.txt` exists in that folder.",
+      "priority": 70,
       "dependencies": [],
-      "status": "Done",
-      "startedAt": "2026-02-24T17:14:27.482369+00:00",
-      "doneAt": "2026-02-24T17:24:05.9163608+00:00"
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-207",
+      "title": "Create docs index listing",
+      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `sandbox/ralph-series/docs/index.txt` that lists files currently in `sandbox/ralph-series/docs/`.\n\nRequirements:\n- Include `note-206.txt` in the index.\n\nAcceptance criteria:\n- `docs/index.txt` exists.\n- It references `note-206.txt`.",
+      "priority": 70,
+      "dependencies": [
+        "task-206"
+      ],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-208",
+      "title": "Create high-priority blocked task marker",
+      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `blocked-high.txt` with a line explaining it was intentionally blocked by dependencies during scheduling.\n\nAcceptance criteria:\n- `sandbox/ralph-series/blocked-high.txt` exists.",
+      "priority": 99,
+      "dependencies": [
+        "task-205"
+      ],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-209",
+      "title": "Create delta branch A file",
+      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `delta-a.txt` with a short line identifying branch A.\n\nAcceptance criteria:\n- `sandbox/ralph-series/delta-a.txt` exists.",
+      "priority": 60,
+      "dependencies": [
+        "task-205"
+      ],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-210",
+      "title": "Create delta branch B file",
+      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `delta-b.txt` with a short line identifying branch B.\n\nAcceptance criteria:\n- `sandbox/ralph-series/delta-b.txt` exists.",
+      "priority": 60,
+      "dependencies": [
+        "task-205"
+      ],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-211",
+      "title": "Create epsilon fan-in summary",
+      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `epsilon.txt` that combines or summarizes `delta-a.txt` and `delta-b.txt`.\n\nAcceptance criteria:\n- `sandbox/ralph-series/epsilon.txt` exists.\n- It mentions both delta files.",
+      "priority": 88,
+      "dependencies": [
+        "task-209",
+        "task-210"
+      ],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-212",
+      "title": "Create independent low-priority scratch file",
+      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `scratch-212.txt` with one line of text. This task is intentionally independent and low priority.\n\nAcceptance criteria:\n- `sandbox/ralph-series/scratch-212.txt` exists.",
+      "priority": 10,
+      "dependencies": [],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-213",
+      "title": "Create zeta report from multiple roots",
+      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `zeta-report.txt` that references `README.txt`, `gamma.txt`, and `docs/index.txt`.\n\nAcceptance criteria:\n- `sandbox/ralph-series/zeta-report.txt` exists.\n- It mentions all three source files.",
+      "priority": 75,
+      "dependencies": [
+        "task-201",
+        "task-205",
+        "task-207"
+      ],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-214",
+      "title": "Create copy of epsilon in exports folder",
+      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `sandbox/ralph-series/exports/epsilon-copy.txt` by copying or regenerating content from `epsilon.txt`.\n\nAcceptance criteria:\n- `sandbox/ralph-series/exports/epsilon-copy.txt` exists.",
+      "priority": 55,
+      "dependencies": [
+        "task-211"
+      ],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-215",
+      "title": "Create manifest of current sandbox files",
+      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `manifest.txt` listing the relative paths of `.txt` files currently present under `sandbox/ralph-series/`.\n\nRequirements:\n- Relative paths only.\n- Deterministic order (sorted).\n\nAcceptance criteria:\n- `manifest.txt` exists.\n- It includes at least `README.txt`, `alpha.txt`, and `beta.txt` once their dependencies are satisfied.",
+      "priority": 65,
+      "dependencies": [
+        "task-201",
+        "task-202",
+        "task-203"
+      ],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-216",
+      "title": "Create tie-priority item A",
+      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `tie-a.txt` with one line. This task shares the same priority as another task to exercise id tie-breaking.\n\nAcceptance criteria:\n- `sandbox/ralph-series/tie-a.txt` exists.",
+      "priority": 42,
+      "dependencies": [],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-217",
+      "title": "Create tie-priority item B",
+      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `tie-b.txt` with one line. Same priority as task-216 to exercise deterministic ordering by id.\n\nAcceptance criteria:\n- `sandbox/ralph-series/tie-b.txt` exists.",
+      "priority": 42,
+      "dependencies": [],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-218",
+      "title": "Create final aggregate from zeta, manifest, and export",
+      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `final-aggregate.txt` that summarizes `zeta-report.txt`, `manifest.txt`, and `exports/epsilon-copy.txt`.\n\nAcceptance criteria:\n- `sandbox/ralph-series/final-aggregate.txt` exists.\n- It mentions all three inputs.",
+      "priority": 50,
+      "dependencies": [
+        "task-213",
+        "task-214",
+        "task-215"
+      ],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-219",
+      "title": "Create late fan-in verification note",
+      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `verify-219.txt` confirming completion of `final-aggregate.txt`, `tie-a.txt`, and `tie-b.txt` by referencing those file names.\n\nAcceptance criteria:\n- `sandbox/ralph-series/verify-219.txt` exists.\n- It mentions `final-aggregate.txt`, `tie-a.txt`, and `tie-b.txt`.",
+      "priority": 40,
+      "dependencies": [
+        "task-218",
+        "task-216",
+        "task-217"
+      ],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-220",
+      "title": "Create completion stamp for soak run",
+      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `DONE-220.txt` as the final completion stamp for the synthetic Ralph soak backlog. Include a short summary of how many task files were generated (approximate count is acceptable if clearly labeled).\n\nAcceptance criteria:\n- `sandbox/ralph-series/DONE-220.txt` exists.\n- It references the soak run/final completion.",
+      "priority": 30,
+      "dependencies": [
+        "task-208",
+        "task-219",
+        "task-212"
+      ],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
     }
   ]
 }
