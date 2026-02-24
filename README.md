@@ -134,6 +134,80 @@ Notes:
 - E2E auth uses a test-only endpoint (`POST /api/v1/test/auth/login`) available only when `ASPNETCORE_ENVIRONMENT=E2E`
 - The setup test stores the app JWT in SPA local storage key `access_token` and reuses Playwright `storageState`
 
+## Ralph Loop (experimental, full-auto task queue)
+Ralph is a single-agent queue runner that processes backlog items one by one:
+- claims the next eligible task from `.ralph/backlog.json`
+- creates/uses a task branch (`ralph/<task-id>`)
+- invokes Codex CLI through `scripts/ralph/agent-adapter.ps1`
+- creates/updates a PR, watches CI/reviews, collects failure feedback, and retries
+- merges a green PR and marks the backlog item `Done`
+
+### Backlog format
+Files:
+- Backlog: `.ralph/backlog.json`
+- Schema: `.ralph/backlog.schema.json`
+- Ralph config: `.ralph/config.json`
+
+Backlog item fields:
+- `id`
+- `title`
+- `description` (full task details sent to the agent)
+- `priority` (higher runs first)
+- `dependencies` (task ids that must be `Done`)
+- `status` (`New | InProgress | InReview | Done`)
+- `startedAt`
+- `doneAt`
+
+Rule:
+- Ralph enforces `1 WIP` (`InProgress`/`InReview`) at a time.
+
+### Backlog CLI (JSON output, script-friendly)
+Wrapper script:
+```powershell
+pwsh -NoLogo -NoProfile -File ./scripts/ralph/backlog.ps1 validate
+```
+
+Examples:
+```powershell
+pwsh -NoLogo -NoProfile -File ./scripts/ralph/backlog.ps1 list
+pwsh -NoLogo -NoProfile -File ./scripts/ralph/backlog.ps1 next
+pwsh -NoLogo -NoProfile -File ./scripts/ralph/backlog.ps1 take-next
+pwsh -NoLogo -NoProfile -File ./scripts/ralph/backlog.ps1 status set --id task-001 --to InReview
+pwsh -NoLogo -NoProfile -File ./scripts/ralph/backlog.ps1 add --id task-010 --title "Task title" --description "Detailed task description" --priority 50
+```
+
+### Backlog CLI smoke test (safe: uses a temp copy)
+```powershell
+pwsh -NoLogo -NoProfile -File ./scripts/ralph/smoke-backlog-cli.ps1
+```
+
+What it checks:
+- schema/runtime validation
+- queue selection (`next`, `take-next`)
+- status transitions (`InProgress`, `InReview`, `Done`)
+- invalid transition error contract
+- `add` and `show`
+
+### Run Ralph loop
+Prereqs:
+- clean repo root checkout on `main`
+- `gh` CLI installed + authenticated (`gh auth status`)
+- Codex CLI available on PATH (`codex`) or set `RALPH_CODEX_COMMAND`
+
+Run one task and stop after PR reaches green/merge (default behavior):
+```powershell
+pwsh -NoLogo -NoProfile -File ./scripts/ralph.ps1 -Once
+```
+
+Useful modes:
+```powershell
+# Resume only the active task (fail if none)
+pwsh -NoLogo -NoProfile -File ./scripts/ralph.ps1 -ResumeOnly
+
+# Stop at green PR without merging (leave item InReview)
+pwsh -NoLogo -NoProfile -File ./scripts/ralph.ps1 -NoMerge
+```
+
 ## Scripts (`pwsh`, Windows/Linux)
 Run from repo root.
 

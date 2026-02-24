@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "task-001",
+      "title": "Add backlog CLI",
+      "description": "Create a .NET CLI to validate and mutate .ralph/backlog.json.\nMust enforce 1 WIP invariant.\nReturn JSON outputs for scripts.",
+      "priority": 100,
+      "dependencies": [],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-002",
+      "title": "Add Ralph loop",
+      "description": "Add scripts/ralph.ps1 orchestration.\nDepends on backlog CLI.",
+      "priority": 90,
+      "dependencies": [
+        "task-001"
+      ],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    }
+  ]
+}

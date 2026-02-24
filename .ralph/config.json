@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "baseBranch": "main",
+  "branchPrefix": "ralph",
+  "worktreePath": ".ralph/worktrees/agent1",
+  "runArtifactsRoot": ".ralph/runs",
+  "backlogPath": ".ralph/backlog.json",
+  "schemaPath": ".ralph/backlog.schema.json",
+  "mergeMethod": "squash",
+  "deleteBranchOnMerge": true,
+  "pollIntervalSeconds": 30,
+  "maxRepairCycles": 10,
+  "agentAdapterScript": "scripts/ralph/agent-adapter.ps1",
+  "feedbackCollectorScript": "scripts/ralph/collect-pr-feedback.ps1",
+  "backlogCliCommand": "dotnet run --project tools/Ralph.BacklogCli --",
+  "requiredChecksMode": "github-required",
+  "localValidationCommands": []
+}
