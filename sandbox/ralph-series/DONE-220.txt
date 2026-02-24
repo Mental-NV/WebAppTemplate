@@ -1,0 +1,8 @@
+Ralph soak run final completion stamp (task-220)
+
+Status: COMPLETE
+
+Summary:
+- Final completion recorded for the synthetic Ralph soak backlog run.
+- Approximate generated task/artifact file count before this stamp: ~18 files under sandbox/ralph-series/.
+- This file serves as the final completion marker for the soak run.
