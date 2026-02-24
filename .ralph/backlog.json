@@ -62,9 +62,9 @@
       "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `sandbox/ralph-series/docs/note-206.txt` with a short message.\n\nAcceptance criteria:\n- Nested folder `docs` exists.\n- `note-206.txt` exists in that folder.",
       "priority": 70,
       "dependencies": [],
-      "status": "New",
-      "startedAt": null,
-      "doneAt": null
+      "status": "Done",
+      "startedAt": "2026-02-24T22:08:51.6595287+00:00",
+      "doneAt": "2026-02-24T22:14:30.3663178+00:00"
     },
     {
       "id": "task-207",
