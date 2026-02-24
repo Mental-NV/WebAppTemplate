@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { vi } from 'vitest'
 import TodoPage from '../pages/TodoPage'
 
@@ -98,19 +98,26 @@ describe('TodoPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /add/i }))
 
     await waitFor(() => expect(state.todosApi.createTodo).toHaveBeenCalledWith('New task'))
-    expect(screen.getByText('New task')).toBeInTheDocument()
+    const newTaskText = await screen.findByText('New task')
     expect(screen.getByText('Total: 2')).toBeInTheDocument()
     expect(screen.getByText('Completed: 0')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('checkbox', { name: /new task/i }))
 
     await waitFor(() => expect(state.todosApi.toggleTodo).toHaveBeenCalledWith(2))
-    expect(screen.getByText('Completed: 1')).toBeInTheDocument()
-    expect(screen.getByText('New task')).toHaveClass('done')
+    await waitFor(() => {
+      expect(screen.getByText('Completed: 1')).toBeInTheDocument()
+      expect(screen.getByText('New task')).toHaveClass('done')
+    })
 
-    fireEvent.click(screen.getAllByRole('button', { name: /delete/i })[0])
+    const newTaskRow = newTaskText.closest('li')
+    expect(newTaskRow).not.toBeNull()
+    fireEvent.click(within(newTaskRow!).getByRole('button', { name: /delete/i }))
 
     await waitFor(() => expect(state.todosApi.deleteTodo).toHaveBeenCalled())
-    expect(screen.getByText('Total: 1')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Total: 1')).toBeInTheDocument()
+      expect(screen.queryByText('New task')).not.toBeInTheDocument()
+    })
   })
 })
