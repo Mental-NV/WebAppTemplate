@@ -1,0 +1,11 @@
+zeta report
+
+This report references the following source files in sandbox/ralph-series:
+- README.txt
+- gamma.txt
+- docs/index.txt
+
+Notes:
+- README.txt describes the Ralph Loop soak testing sandbox root.
+- gamma.txt summarizes line counts for alpha.txt and beta.txt.
+- docs/index.txt lists documentation entries under the docs folder.
