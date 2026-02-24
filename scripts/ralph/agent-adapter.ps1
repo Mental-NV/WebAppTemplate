@@ -32,6 +32,16 @@ function Resolve-ProcessLaunchSpec {
     if ($commandInfo.CommandType -eq [System.Management.Automation.CommandTypes]::ExternalScript -and
         -not [string]::IsNullOrWhiteSpace($resolvedPath) -and
         [System.IO.Path]::GetExtension($resolvedPath).Equals(".ps1", [System.StringComparison]::OrdinalIgnoreCase)) {
+        $cmdShimPath = [System.IO.Path]::ChangeExtension($resolvedPath, ".cmd")
+        if (Test-Path -LiteralPath $cmdShimPath) {
+            return [pscustomobject]@{
+                FilePath = $cmdShimPath
+                ArgumentList = $CommandArguments
+                ResolvedCommandPath = $cmdShimPath
+                LauncherKind = "CmdShim"
+            }
+        }
+
         return [pscustomobject]@{
             FilePath = "pwsh"
             ArgumentList = @("-NoLogo", "-NoProfile", "-File", $resolvedPath) + $CommandArguments
@@ -72,6 +82,9 @@ if (-not [string]::IsNullOrWhiteSpace($env:RALPH_CODEX_MODEL)) {
 
 $startedAt = [DateTimeOffset]::UtcNow
 $launchSpec = Resolve-ProcessLaunchSpec -CommandName $codexCmd -CommandArguments $argList
+Write-Host "[Ralph-Agent] Launching Codex via $($launchSpec.LauncherKind): $($launchSpec.FilePath)" -ForegroundColor DarkCyan
+Write-Host "[Ralph-Agent] Prompt: $PromptFile" -ForegroundColor DarkGray
+Write-Host "[Ralph-Agent] Logs: stdout=$stdoutPath stderr=$stderrPath" -ForegroundColor DarkGray
 
 $proc = Start-Process `
     -FilePath $launchSpec.FilePath `
@@ -84,6 +97,7 @@ $proc = Start-Process `
     -Wait
 
 $completedAt = [DateTimeOffset]::UtcNow
+Write-Host "[Ralph-Agent] Codex process exited with code $($proc.ExitCode)" -ForegroundColor DarkCyan
 
 $result = [ordered]@{
     taskId = $TaskId
