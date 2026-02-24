@@ -1,0 +1,4 @@
+gamma summary
+alpha.txt: 4 lines
+beta.txt: 2 lines
+total: 6 lines
