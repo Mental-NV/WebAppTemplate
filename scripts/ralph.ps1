@@ -186,11 +186,33 @@ function Assert-GitWorkingTreeClean {
         [string]$RepoPath
     )
 
-    $status = [string](& git -C $RepoPath status --porcelain)
-    $status = $status.Trim()
+    $status = Get-TrimmedText -InputObject (& git -C $RepoPath status --porcelain)
     if (-not [string]::IsNullOrWhiteSpace($status)) {
         throw "Git working tree is not clean at '$RepoPath'."
     }
+}
+
+function Get-TrimmedText {
+    param(
+        [Parameter(ValueFromPipeline = $true)]
+        [AllowNull()]
+        $InputObject
+    )
+
+    if ($null -eq $InputObject) {
+        return ""
+    }
+
+    if ($InputObject -is [string]) {
+        return $InputObject.Trim()
+    }
+
+    $text = [string]($InputObject | Out-String)
+    if ($null -eq $text) {
+        return ""
+    }
+
+    return $text.Trim()
 }
 
 function Assert-DefaultBranchMatchesConfig {
@@ -462,7 +484,7 @@ try {
 
     Assert-GitWorkingTreeClean -RepoPath $script:RepoRoot
 
-    $currentBranch = (& git -C $script:RepoRoot branch --show-current).Trim()
+    $currentBranch = Get-TrimmedText (& git -C $script:RepoRoot branch --show-current)
     if ($currentBranch -ne $baseBranch) {
         throw "Ralph requires a clean '$baseBranch' checkout at repo root. Current branch: $currentBranch"
     }
@@ -547,12 +569,12 @@ try {
 
             Run-LocalValidationCommands -WorktreePath $worktreePath
 
-            $wtBranch = (& git -C $worktreePath branch --show-current).Trim()
+            $wtBranch = Get-TrimmedText (& git -C $worktreePath branch --show-current)
             if ($wtBranch -ne $branchName) {
                 throw "Agent left wrong branch checked out: $wtBranch"
             }
 
-            $aheadCount = [int]((& git -C $worktreePath rev-list --count "origin/$baseBranch..HEAD").Trim())
+            $aheadCount = [int](Get-TrimmedText (& git -C $worktreePath rev-list --count "origin/$baseBranch..HEAD"))
             if ($aheadCount -le 0 -and -not $remoteBranchExists) {
                 throw "No commits ahead of origin/$baseBranch after agent run for $taskId."
             }
