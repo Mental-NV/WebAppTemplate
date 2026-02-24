@@ -7,9 +7,9 @@
       "description": "Update README.md to include a GitHub Actions status badge for the CI workflow defined in .github/workflows/ci.yml.\n\nRequirements:\n- Add a visible badge near the top of README.md (title/header area).\n- Badge should point to the CI workflow page in this repository.\n- Use the standard GitHub Actions badge URL for workflow file ci.yml.\n- Keep existing README content intact aside from the badge placement.\n\nAcceptance criteria:\n- README.md renders a CI badge in GitHub.\n- Badge links to the CI workflow page.\n- No unrelated README edits.",
       "priority": 100,
       "dependencies": [],
-      "status": "New",
-      "startedAt": null,
-      "doneAt": null
+      "status": "Done",
+      "startedAt": "2026-02-24T15:37:47.2094274+00:00",
+      "doneAt": "2026-02-24T15:59:41.5660553+00:00"
     },
     {
       "id": "task-102",
