@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "task-a",
+      "title": "Missing dep",
+      "description": "Depends on a nonexistent item.",
+      "priority": 1,
+      "dependencies": [
+        "task-missing"
+      ],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    }
+  ]
+}

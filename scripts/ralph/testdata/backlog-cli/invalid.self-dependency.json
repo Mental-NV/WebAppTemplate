@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "task-self",
+      "title": "Self dependency",
+      "description": "Task depends on itself.",
+      "priority": 1,
+      "dependencies": [
+        "task-self"
+      ],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    }
+  ]
+}

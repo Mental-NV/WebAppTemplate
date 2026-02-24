@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "task-a",
+      "title": "Low priority ready",
+      "description": "Eligible new task with lower priority.",
+      "priority": 10,
+      "dependencies": [],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-b",
+      "title": "High priority ready B",
+      "description": "Eligible new task; should win tie-break by id.",
+      "priority": 20,
+      "dependencies": [],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-c",
+      "title": "High priority ready C",
+      "description": "Eligible new task; same priority as task-b.",
+      "priority": 20,
+      "dependencies": [],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-d",
+      "title": "Blocked task",
+      "description": "Blocked on task-b until task-b is Done.",
+      "priority": 50,
+      "dependencies": [
+        "task-b"
+      ],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-zdone",
+      "title": "Completed task",
+      "description": "Already completed task used for status filter checks.",
+      "priority": 1,
+      "dependencies": [],
+      "status": "Done",
+      "startedAt": "2026-02-24T00:00:00Z",
+      "doneAt": "2026-02-24T00:05:00Z"
+    }
+  ]
+}

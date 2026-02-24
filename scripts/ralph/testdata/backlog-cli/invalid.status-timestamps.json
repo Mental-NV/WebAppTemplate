@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "task-new-bad",
+      "title": "New with startedAt",
+      "description": "Invalid timestamp for New status.",
+      "priority": 1,
+      "dependencies": [],
+      "status": "New",
+      "startedAt": "2026-02-24T08:00:00Z",
+      "doneAt": null
+    }
+  ]
+}
