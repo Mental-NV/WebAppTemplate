@@ -27,6 +27,9 @@ jobs:
         with:
           global-json-file: global.json
 
+      - name: Validate Ralph backlog file
+        run: ./scripts/ralph/backlog.ps1 validate
+
       - name: Run Ralph Backlog CLI smoke test
         run: ./scripts/ralph/smoke-backlog-cli.ps1
 
