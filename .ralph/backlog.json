@@ -20,6 +20,16 @@
       "status": "New",
       "startedAt": null,
       "doneAt": null
+    },
+    {
+      "id": "task-103",
+      "title": "Add explicit CI step to validate real Ralph backlog",
+      "description": "Update .github/workflows/ci.yml to add an explicit step in the Ralph smoke job (or equivalent lightweight CI path) that runs `pwsh -NoLogo -NoProfile -File ./scripts/ralph/backlog.ps1 validate` against the repository's real `.ralph/backlog.json`.\n\nRequirements:\n- Keep the existing Ralph smoke suite step (`scripts/ralph/smoke-backlog-cli.ps1`).\n- Add a separate, explicit validation step for the actual backlog file.\n- The step should fail CI if `.ralph/backlog.json` is invalid.\n- Prefer placing the explicit validate step before the smoke suite.\n\nAcceptance criteria:\n- `.github/workflows/ci.yml` contains a dedicated backlog validation step using `backlog.ps1 validate`.\n- Existing Ralph smoke job still runs.\n- Workflow YAML remains valid.",
+      "priority": 80,
+      "dependencies": [],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
     }
   ]
 }
