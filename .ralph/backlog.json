@@ -39,9 +39,9 @@
       "dependencies": [
         "task-202"
       ],
-      "status": "New",
-      "startedAt": null,
-      "doneAt": null
+      "status": "Done",
+      "startedAt": "2026-02-24T20:36:18.8444241+00:00",
+      "doneAt": "2026-02-24T20:41:36.3778199+00:00"
     },
     {
       "id": "task-205",
