@@ -130,7 +130,7 @@ $env:E2E_AUTH_SECRET = "local-e2e-secret" # optional locally; defaults if omitte
 npm run test:e2e:ci
 ```
 
-Notes:
+Notes: 
 - Playwright starts the published app via `scripts/run.ps1 -E2E` on `https://localhost:5001`
 - E2E auth uses a test-only endpoint (`POST /api/v1/test/auth/login`) available only when `ASPNETCORE_ENVIRONMENT=E2E`
 - The setup test stores the app JWT in SPA local storage key `access_token` and reuses Playwright `storageState`
