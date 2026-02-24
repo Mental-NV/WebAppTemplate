@@ -17,6 +17,8 @@ $script:RalphRunId = $null
 $script:RalphConfig = $null
 $script:RepoRoot = Split-Path -Parent $PSScriptRoot
 $worktreePath = $null
+$worktreeRootPath = $null
+$worktreeNamePrefix = "agent"
 $script:RalphStepCounter = 0
 
 function Resolve-RalphPath {
@@ -333,7 +335,7 @@ function Remove-RalphWorktreePath {
             Write-Host "Worktree filesystem cleanup warning for '$WorktreePath': $($_.Exception.Message)" -ForegroundColor Yellow
         }
 
-        if (Test-Path -LiteralPath $WorktreePath -and $attempt -lt $maxAttempts) {
+        if ((Test-Path -LiteralPath $WorktreePath) -and ($attempt -lt $maxAttempts)) {
             $killed = Stop-RalphProcessesReferencingWorktree -WorktreePath $WorktreePath
             if ($killed -gt 0) {
                 Write-RalphStep "Stopped $killed lingering process(es) referencing Ralph worktree; retrying cleanup"
@@ -764,7 +766,17 @@ try {
 
     $baseBranch = [string]$script:RalphConfig.baseBranch
     $branchPrefix = [string]$script:RalphConfig.branchPrefix
-    $worktreePath = Resolve-RalphPath -PathValue ([string]$script:RalphConfig.worktreePath)
+    $configuredWorktreePath = Resolve-RalphPath -PathValue ([string]$script:RalphConfig.worktreePath)
+    $configuredWorktreeLeaf = Split-Path -Leaf $configuredWorktreePath
+    $configuredWorktreeParent = Split-Path -Parent $configuredWorktreePath
+    if ([string]::IsNullOrWhiteSpace($configuredWorktreeParent)) {
+        $worktreeRootPath = $configuredWorktreePath
+        $worktreeNamePrefix = "agent"
+    }
+    else {
+        $worktreeRootPath = $configuredWorktreeParent
+        $worktreeNamePrefix = if ([string]::IsNullOrWhiteSpace($configuredWorktreeLeaf)) { "agent" } else { $configuredWorktreeLeaf }
+    }
     $runArtifactsRoot = Resolve-RalphPath -PathValue ([string]$script:RalphConfig.runArtifactsRoot)
     $agentAdapterScript = Resolve-RalphPath -PathValue ([string]$script:RalphConfig.agentAdapterScript)
     $feedbackCollectorScript = Resolve-RalphPath -PathValue ([string]$script:RalphConfig.feedbackCollectorScript)
@@ -774,10 +786,11 @@ try {
     Write-RalphStep "Loading Ralph config and acquiring loop lock"
     Acquire-RalphLock
     Ensure-Directory -Path (Resolve-RalphPath -PathValue ".ralph")
+    Ensure-Directory -Path $worktreeRootPath
     Ensure-Directory -Path $runArtifactsRoot
 
     Write-Host "Running Ralph loop..." -ForegroundColor Cyan
-    Write-Host "Base branch: $baseBranch | Worktree: $worktreePath" -ForegroundColor Gray
+    Write-Host "Base branch: $baseBranch | Worktree root: $worktreeRootPath | Worktree prefix: $worktreeNamePrefix" -ForegroundColor Gray
 
     Write-RalphStep "Running preflight checks (commands, git state, GitHub auth)"
     Assert-CommandAvailable -Name "git"
@@ -824,7 +837,10 @@ try {
         $taskTitle = [string]$item.title
         $taskDescription = [string]$item.description
         $branchName = "$branchPrefix/$taskId"
+        $worktreeDirName = "$worktreeNamePrefix-$taskId"
+        $worktreePath = Join-Path -Path $worktreeRootPath -ChildPath $worktreeDirName
         Write-RalphStep "Working task '$taskId' on branch '$branchName'"
+        Write-RalphStep "Task '$taskId' worktree path: $worktreePath"
 
         $runId = Get-OrCreateRunId
         $taskRunDir = Join-Path -Path $runArtifactsRoot -ChildPath (Join-Path -Path $runId -ChildPath $taskId)
