@@ -303,7 +303,7 @@ $Description
 
 ## Requirements
 - Implement the task fully.
-- Run mechanical validation scripts/tests when appropriate.
+- Validate changes by running e2e tests with command: '.\scripts\e2e.ps1'. Fix any test failures until they pass reliably.
 - Commit all changes to the current branch.
 - Push the branch to origin.
 - Create or update a PR for this branch.
