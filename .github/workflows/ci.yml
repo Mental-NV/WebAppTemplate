@@ -61,6 +61,12 @@ jobs:
           cache: npm
           cache-dependency-path: src/web/package-lock.json
 
+      - name: Temporary Ralph CI failure (task-302)
+        if: github.event_name == 'pull_request' && github.head_ref == 'ralph/task-302' && runner.os == 'Linux'
+        run: |
+          Write-Error "Intentional Linux PR failure for task-302 (remove after first Ralph attempt)."
+          exit 1
+
       - name: Build
         run: ./scripts/build.ps1 -Configuration Release -CI
 
