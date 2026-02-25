@@ -61,6 +61,11 @@ jobs:
           cache: npm
           cache-dependency-path: src/web/package-lock.json
 
+      - name: Temporary Ralph CI failure (task-308)
+        if: github.event_name == 'pull_request' && github.head_ref == 'ralph/task-308' && runner.os == 'Windows'
+        run: |
+          Write-Error 'Intentional temporary Windows PR failure for task-308 repair-loop simulation.'
+
       - name: Build
         run: ./scripts/build.ps1 -Configuration Release -CI
 
