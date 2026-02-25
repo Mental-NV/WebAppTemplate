@@ -1,0 +1,1 @@
+Task 306: temporary CI failure injected before the Playwright E2E step for the first PR attempt, then removed in the repair commit.
