@@ -33,12 +33,6 @@ jobs:
       - name: Run Ralph Backlog CLI smoke test
         run: ./scripts/ralph/smoke-backlog-cli.ps1
 
-      - name: Simulate remote CI failure for Ralph repair loop (task-301)
-        if: github.event_name == 'pull_request' && github.head_ref == 'ralph/task-301'
-        run: |
-          Write-Host "Intentional ralph-smoke failure for task-301 first PR attempt."
-          exit 1
-
   ci:
     name: CI (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
