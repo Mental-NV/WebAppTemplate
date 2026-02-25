@@ -80,12 +80,6 @@ jobs:
         working-directory: src/web
         run: npx playwright install chromium
 
-      - name: TEMP Ralph task-306 CI failure before Playwright E2E
-        if: github.event_name == 'pull_request' && github.head_ref == 'ralph/task-306'
-        run: |
-          echo "Intentional temporary CI failure for Ralph task-306 before Playwright E2E."
-          exit 1
-
       - name: Run Playwright E2E
         env:
           Jwt__SigningKey: ${{ secrets.JWT__SIGNINGKEY }}
