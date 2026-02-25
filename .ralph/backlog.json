@@ -62,9 +62,9 @@
       "description": "Create `sandbox/ralph-ci-failures/docs/note-306.txt` with a short message.\n\nRemote-CI failure simulation requirement (intentional, first PR attempt only):\n- Add a temporary failing step in job `ci` immediately before `Run Playwright E2E`, scoped to PR branch `ralph/task-306`.\n- Keep it fast and explicit (`echo` + fail).\n- Remove it during Ralph repair attempt.\n\nSafety constraints:\n- Do not change secrets/env values in CI.\n- Do not alter existing test commands beyond adding/removing the temporary step.\n\nAcceptance criteria:\n- `sandbox/ralph-ci-failures/docs/note-306.txt` exists.\n- First PR attempt fails remotely near the E2E stage due to the temporary step.\n- Final PR checks are green.",
       "priority": 72,
       "dependencies": [],
-      "status": "New",
-      "startedAt": null,
-      "doneAt": null
+      "status": "Done",
+      "startedAt": "2026-02-25T01:35:09.8255814+00:00",
+      "doneAt": "2026-02-25T01:45:52.4078524+00:00"
     },
     {
       "id": "task-307",
