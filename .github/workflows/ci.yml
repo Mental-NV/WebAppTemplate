@@ -49,6 +49,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Temporary Ralph CI failure (task-305 first PR attempt)
+        if: github.event_name == 'pull_request' && github.head_ref == 'ralph/task-305'
+        run: |
+          Write-Error "Intentional temporary failure for ralph/task-305 first PR attempt"
+          exit 1
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
