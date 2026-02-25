@@ -61,12 +61,6 @@ jobs:
           cache: npm
           cache-dependency-path: src/web/package-lock.json
 
-      - name: Temporary Ralph CI failure (task-307)
-        if: github.event_name == 'pull_request' && github.head_ref == 'ralph/task-307'
-        run: |
-          Write-Error 'Intentional pre-Build failure for Ralph task-307 first PR attempt'
-          exit 1
-
       - name: Build
         run: ./scripts/build.ps1 -Configuration Release -CI
 
