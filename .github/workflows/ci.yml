@@ -33,6 +33,12 @@ jobs:
       - name: Run Ralph Backlog CLI smoke test
         run: ./scripts/ralph/smoke-backlog-cli.ps1
 
+      - name: Temporary Ralph smoke failure for task-310 (remove after repair)
+        if: github.event_name == 'pull_request' && github.head_ref == 'ralph/task-310'
+        run: |
+          Write-Host "Intentional temporary failure for Ralph repair loop exercise on ralph/task-310."
+          exit 1
+
   ci:
     name: CI (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
