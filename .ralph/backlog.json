@@ -7,9 +7,9 @@
       "description": "Goal: exercise Ralph repair loop with a harmless, workflow-only CI failure.\n\nWork primarily under `sandbox/ralph-ci-failures/`. Create `sandbox/ralph-ci-failures/README.txt` with a short note describing this CI-failure simulation series.\n\nRemote-CI failure simulation requirement (intentional, first PR attempt only):\n- Add a temporary failing step to `.github/workflows/ci.yml` in job `ralph-smoke` that runs only for pull requests where `github.head_ref == 'ralph/task-301'`.\n- The step should fail fast (for example, print a message and `exit 1`).\n- Do NOT break YAML syntax.\n- On Ralph repair attempt, remove the temporary failing step and keep the sandbox file change.\n\nSafety constraints:\n- Final merged diff must not contain any CI-failure simulation step.\n- Final merged diff should only contain the intended sandbox file change(s).\n\nAcceptance criteria:\n- `sandbox/ralph-ci-failures/README.txt` exists and has at least 2 lines.\n- Ralph repair loop is exercised at least once due to remote CI failure.\n- Final PR checks are green.",
       "priority": 100,
       "dependencies": [],
-      "status": "New",
-      "startedAt": null,
-      "doneAt": null
+      "status": "Done",
+      "startedAt": "2026-02-25T00:27:47.9901466+00:00",
+      "doneAt": "2026-02-25T00:37:55.9746975+00:00"
     },
     {
       "id": "task-302",
@@ -36,7 +36,9 @@
       "title": "Append an update line to alpha and trigger temporary ralph-smoke failure",
       "description": "Append one new line to `sandbox/ralph-ci-failures/alpha.txt` that starts with `updated:`.\n\nDependencies ensure `alpha.txt` already exists.\n\nRemote-CI failure simulation requirement (intentional, first PR attempt only):\n- Add a temporary failing step to `ralph-smoke` scoped to PR branch `ralph/task-304`.\n- Remove it during Ralph repair while preserving the alpha append change.\n\nAcceptance criteria:\n- `alpha.txt` gains one appended line beginning with `updated:`.\n- Ralph repair loop is exercised due to remote CI failure.\n- Final PR checks are green.",
       "priority": 90,
-      "dependencies": ["task-302"],
+      "dependencies": [
+        "task-302"
+      ],
       "status": "New",
       "startedAt": null,
       "doneAt": null
@@ -46,7 +48,10 @@
       "title": "Create gamma summary from alpha and beta with temporary dual-matrix CI failure",
       "description": "Create `sandbox/ralph-ci-failures/gamma.txt` summarizing `alpha.txt` and `beta.txt` (for example: filenames and line counts). Use a deterministic plain-text format.\n\nRemote-CI failure simulation requirement (intentional, first PR attempt only):\n- Add one temporary failing step to job `ci` scoped to PR branch `ralph/task-305` without OS filter, so both matrix jobs fail quickly.\n- Remove it during Ralph repair attempt.\n\nAcceptance criteria:\n- `gamma.txt` exists and mentions both `alpha.txt` and `beta.txt`.\n- First PR attempt fails remote CI on both matrix jobs.\n- Final PR checks are green.",
       "priority": 99,
-      "dependencies": ["task-302", "task-303"],
+      "dependencies": [
+        "task-302",
+        "task-303"
+      ],
       "status": "New",
       "startedAt": null,
       "doneAt": null
@@ -66,7 +71,9 @@
       "title": "Create docs index and trigger temporary ci pre-Build failure",
       "description": "Create `sandbox/ralph-ci-failures/docs/index.txt` listing files currently in `sandbox/ralph-ci-failures/docs/`. Include `note-306.txt`.\n\nRemote-CI failure simulation requirement (intentional, first PR attempt only):\n- Add a temporary failing step in job `ci` just before the `Build` step, scoped to PR branch `ralph/task-307`.\n- Remove the temporary step during Ralph repair attempt.\n\nAcceptance criteria:\n- `docs/index.txt` exists and references `note-306.txt`.\n- Ralph repair loop runs at least once from remote CI feedback.\n- Final PR checks are green.",
       "priority": 72,
-      "dependencies": ["task-306"],
+      "dependencies": [
+        "task-306"
+      ],
       "status": "New",
       "startedAt": null,
       "doneAt": null
@@ -76,7 +83,9 @@
       "title": "Create blocked-high marker after gamma using temporary Windows-only CI failure",
       "description": "Create `sandbox/ralph-ci-failures/blocked-high.txt` with one line explaining this high-priority task was dependency-blocked until `gamma.txt` existed.\n\nRemote-CI failure simulation requirement (intentional, first PR attempt only):\n- Add a temporary failing step to job `ci`, scoped to PR branch `ralph/task-308` and `runner.os == 'Windows'`.\n- Remove it during Ralph repair attempt.\n\nAcceptance criteria:\n- `blocked-high.txt` exists.\n- Task demonstrates scheduling with high priority but dependency on `task-305`.\n- Final PR checks are green after one repair loop.",
       "priority": 98,
-      "dependencies": ["task-305"],
+      "dependencies": [
+        "task-305"
+      ],
       "status": "New",
       "startedAt": null,
       "doneAt": null
@@ -86,7 +95,12 @@
       "title": "Create manifest of sandbox text files with temporary Linux-only CI failure",
       "description": "Create `sandbox/ralph-ci-failures/manifest.txt` listing relative `.txt` files under `sandbox/ralph-ci-failures/` in deterministic sorted order.\n\nDependencies ensure representative files exist.\n\nRemote-CI failure simulation requirement (intentional, first PR attempt only):\n- Add a temporary failing step to job `ci` scoped to PR branch `ralph/task-309` and `runner.os == 'Linux'`.\n- Remove it during Ralph repair attempt.\n\nAcceptance criteria:\n- `manifest.txt` exists and includes at least `README.txt`, `alpha.txt`, `beta.txt`, and `gamma.txt`.\n- First PR attempt fails remote CI and is repaired.\n- Final PR checks are green.",
       "priority": 68,
-      "dependencies": ["task-301", "task-302", "task-303", "task-305"],
+      "dependencies": [
+        "task-301",
+        "task-302",
+        "task-303",
+        "task-305"
+      ],
       "status": "New",
       "startedAt": null,
       "doneAt": null
@@ -96,7 +110,11 @@
       "title": "Create final verification note referencing docs and manifest with temporary ralph-smoke failure",
       "description": "Create `sandbox/ralph-ci-failures/final-verify.txt` that references `docs/index.txt`, `manifest.txt`, and `blocked-high.txt`.\n\nRemote-CI failure simulation requirement (intentional, first PR attempt only):\n- Add a temporary failing step to `ralph-smoke` scoped to PR branch `ralph/task-310`.\n- Remove it during Ralph repair attempt.\n\nSafety constraints:\n- Final merged diff must not leave CI workflow changes behind.\n- Keep changes limited to the intended sandbox file(s) after repair.\n\nAcceptance criteria:\n- `final-verify.txt` exists and mentions `docs/index.txt`, `manifest.txt`, and `blocked-high.txt`.\n- Ralph repair loop is exercised from remote CI failure.\n- Final PR checks are green.",
       "priority": 60,
-      "dependencies": ["task-307", "task-308", "task-309"],
+      "dependencies": [
+        "task-307",
+        "task-308",
+        "task-309"
+      ],
       "status": "New",
       "startedAt": null,
       "doneAt": null
