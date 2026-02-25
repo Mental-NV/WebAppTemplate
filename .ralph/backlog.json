@@ -2,242 +2,104 @@
   "version": 1,
   "items": [
     {
-      "id": "task-201",
-      "title": "Create sandbox root marker file",
-      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate the directory `sandbox/ralph-series` if it does not exist and create `sandbox/ralph-series/README.txt` with a short note that this folder is used for Ralph Loop soak testing.\n\nRequirements:\n- Only modify files under `sandbox/ralph-series/`.\n- Do not change repo code/config/docs outside the sandbox.\n\nAcceptance criteria:\n- `sandbox/ralph-series/README.txt` exists.\n- File contains at least 2 human-readable lines.",
+      "id": "task-301",
+      "title": "Simulate remote CI failure via ralph-smoke step while creating seed note",
+      "description": "Goal: exercise Ralph repair loop with a harmless, workflow-only CI failure.\n\nWork primarily under `sandbox/ralph-ci-failures/`. Create `sandbox/ralph-ci-failures/README.txt` with a short note describing this CI-failure simulation series.\n\nRemote-CI failure simulation requirement (intentional, first PR attempt only):\n- Add a temporary failing step to `.github/workflows/ci.yml` in job `ralph-smoke` that runs only for pull requests where `github.head_ref == 'ralph/task-301'`.\n- The step should fail fast (for example, print a message and `exit 1`).\n- Do NOT break YAML syntax.\n- On Ralph repair attempt, remove the temporary failing step and keep the sandbox file change.\n\nSafety constraints:\n- Final merged diff must not contain any CI-failure simulation step.\n- Final merged diff should only contain the intended sandbox file change(s).\n\nAcceptance criteria:\n- `sandbox/ralph-ci-failures/README.txt` exists and has at least 2 lines.\n- Ralph repair loop is exercised at least once due to remote CI failure.\n- Final PR checks are green.",
       "priority": 100,
       "dependencies": [],
-      "status": "Done",
-      "startedAt": "2026-02-24T19:04:12.3707007+00:00",
-      "doneAt": "2026-02-24T19:22:12.1938895+00:00"
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
     },
     {
-      "id": "task-202",
-      "title": "Create alpha note file",
-      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `sandbox/ralph-series/alpha.txt` with 3 short lines of text.\n\nRequirements:\n- Overwrite the file if it already exists.\n- Keep content plain text (ASCII only).\n\nAcceptance criteria:\n- `sandbox/ralph-series/alpha.txt` exists.\n- File has exactly 3 lines.",
+      "id": "task-302",
+      "title": "Simulate Linux matrix CI failure while creating alpha marker",
+      "description": "Create `sandbox/ralph-ci-failures/alpha.txt` with exactly 3 short ASCII lines.\n\nRemote-CI failure simulation requirement (intentional, first PR attempt only):\n- Add a temporary failing step to job `ci` in `.github/workflows/ci.yml` that runs only when both conditions are true:\n  - `github.event_name == 'pull_request'`\n  - `github.head_ref == 'ralph/task-302'`\n  - `runner.os == 'Linux'`\n- The step should fail quickly and clearly.\n- On Ralph repair attempt, remove the temporary failing step and keep the sandbox file change.\n\nSafety constraints:\n- Keep workflow syntax valid at all times.\n- Final diff should not contain the temporary failing step.\n\nAcceptance criteria:\n- `sandbox/ralph-ci-failures/alpha.txt` exists and has 3 lines.\n- First PR attempt fails remote CI (Linux matrix path).\n- Final PR checks are green.",
       "priority": 95,
       "dependencies": [],
-      "status": "Done",
-      "startedAt": "2026-02-24T19:43:47.9908936+00:00",
-      "doneAt": "2026-02-24T20:02:05.577519+00:00"
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
     },
     {
-      "id": "task-203",
-      "title": "Create beta note file",
-      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `sandbox/ralph-series/beta.txt` with 2 short lines of text.\n\nAcceptance criteria:\n- `sandbox/ralph-series/beta.txt` exists.\n- File has exactly 2 lines.",
+      "id": "task-303",
+      "title": "Simulate Windows matrix CI failure while creating beta marker",
+      "description": "Create `sandbox/ralph-ci-failures/beta.txt` with exactly 2 short ASCII lines.\n\nRemote-CI failure simulation requirement (intentional, first PR attempt only):\n- Add a temporary failing step to job `ci` in `.github/workflows/ci.yml` scoped to PR branch `ralph/task-303` and `runner.os == 'Windows'`.\n- Fail fast and print a clear message.\n- On Ralph repair attempt, remove the temporary failing step and keep the sandbox file change.\n\nAcceptance criteria:\n- `sandbox/ralph-ci-failures/beta.txt` exists and has 2 lines.\n- Remote CI fails on first PR attempt and is repaired.\n- Final PR checks are green.",
       "priority": 95,
       "dependencies": [],
-      "status": "Done",
-      "startedAt": "2026-02-24T20:02:32.544762+00:00",
-      "doneAt": "2026-02-24T20:18:48.620202+00:00"
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
     },
     {
-      "id": "task-204",
-      "title": "Append timestamp line to alpha",
-      "description": "Work only under `sandbox/ralph-series/`.\n\nAppend one new line to `alpha.txt` that starts with `updated:`.\n\nRequirements:\n- Preserve existing content in `alpha.txt`.\n- If `alpha.txt` is missing, fail by creating a clear change that depends on `task-202` (this task already depends on it).\n\nAcceptance criteria:\n- `alpha.txt` contains one appended line beginning with `updated:`.",
+      "id": "task-304",
+      "title": "Append an update line to alpha and trigger temporary ralph-smoke failure",
+      "description": "Append one new line to `sandbox/ralph-ci-failures/alpha.txt` that starts with `updated:`.\n\nDependencies ensure `alpha.txt` already exists.\n\nRemote-CI failure simulation requirement (intentional, first PR attempt only):\n- Add a temporary failing step to `ralph-smoke` scoped to PR branch `ralph/task-304`.\n- Remove it during Ralph repair while preserving the alpha append change.\n\nAcceptance criteria:\n- `alpha.txt` gains one appended line beginning with `updated:`.\n- Ralph repair loop is exercised due to remote CI failure.\n- Final PR checks are green.",
       "priority": 90,
-      "dependencies": [
-        "task-202"
-      ],
-      "status": "Done",
-      "startedAt": "2026-02-24T20:36:18.8444241+00:00",
-      "doneAt": "2026-02-24T20:41:36.3778199+00:00"
+      "dependencies": ["task-302"],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
     },
     {
-      "id": "task-205",
-      "title": "Create gamma from alpha and beta summary",
-      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `gamma.txt` summarizing `alpha.txt` and `beta.txt` (for example, file names and line counts).\n\nRequirements:\n- Read both source files.\n- Produce a deterministic text format.\n\nAcceptance criteria:\n- `sandbox/ralph-series/gamma.txt` exists.\n- It mentions both `alpha.txt` and `beta.txt`.",
-      "priority": 85,
-      "dependencies": [
-        "task-202",
-        "task-203"
-      ],
-      "status": "Done",
-      "startedAt": "2026-02-24T21:04:31.9867873+00:00",
-      "doneAt": "2026-02-24T21:12:34.6402671+00:00"
-    },
-    {
-      "id": "task-206",
-      "title": "Create nested docs folder and note",
-      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `sandbox/ralph-series/docs/note-206.txt` with a short message.\n\nAcceptance criteria:\n- Nested folder `docs` exists.\n- `note-206.txt` exists in that folder.",
-      "priority": 70,
-      "dependencies": [],
-      "status": "Done",
-      "startedAt": "2026-02-24T22:08:51.6595287+00:00",
-      "doneAt": "2026-02-24T22:14:30.3663178+00:00"
-    },
-    {
-      "id": "task-207",
-      "title": "Create docs index listing",
-      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `sandbox/ralph-series/docs/index.txt` that lists files currently in `sandbox/ralph-series/docs/`.\n\nRequirements:\n- Include `note-206.txt` in the index.\n\nAcceptance criteria:\n- `docs/index.txt` exists.\n- It references `note-206.txt`.",
-      "priority": 70,
-      "dependencies": [
-        "task-206"
-      ],
-      "status": "Done",
-      "startedAt": "2026-02-24T22:14:54.277382+00:00",
-      "doneAt": "2026-02-24T22:20:45.9838784+00:00"
-    },
-    {
-      "id": "task-208",
-      "title": "Create high-priority blocked task marker",
-      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `blocked-high.txt` with a line explaining it was intentionally blocked by dependencies during scheduling.\n\nAcceptance criteria:\n- `sandbox/ralph-series/blocked-high.txt` exists.",
+      "id": "task-305",
+      "title": "Create gamma summary from alpha and beta with temporary dual-matrix CI failure",
+      "description": "Create `sandbox/ralph-ci-failures/gamma.txt` summarizing `alpha.txt` and `beta.txt` (for example: filenames and line counts). Use a deterministic plain-text format.\n\nRemote-CI failure simulation requirement (intentional, first PR attempt only):\n- Add one temporary failing step to job `ci` scoped to PR branch `ralph/task-305` without OS filter, so both matrix jobs fail quickly.\n- Remove it during Ralph repair attempt.\n\nAcceptance criteria:\n- `gamma.txt` exists and mentions both `alpha.txt` and `beta.txt`.\n- First PR attempt fails remote CI on both matrix jobs.\n- Final PR checks are green.",
       "priority": 99,
-      "dependencies": [
-        "task-205"
-      ],
-      "status": "Done",
-      "startedAt": "2026-02-24T21:41:20.3514471+00:00",
-      "doneAt": "2026-02-24T21:47:39.2167239+00:00"
+      "dependencies": ["task-302", "task-303"],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
     },
     {
-      "id": "task-209",
-      "title": "Create delta branch A file",
-      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `delta-a.txt` with a short line identifying branch A.\n\nAcceptance criteria:\n- `sandbox/ralph-series/delta-a.txt` exists.",
+      "id": "task-306",
+      "title": "Create docs note with temporary Playwright-step-targeted CI failure",
+      "description": "Create `sandbox/ralph-ci-failures/docs/note-306.txt` with a short message.\n\nRemote-CI failure simulation requirement (intentional, first PR attempt only):\n- Add a temporary failing step in job `ci` immediately before `Run Playwright E2E`, scoped to PR branch `ralph/task-306`.\n- Keep it fast and explicit (`echo` + fail).\n- Remove it during Ralph repair attempt.\n\nSafety constraints:\n- Do not change secrets/env values in CI.\n- Do not alter existing test commands beyond adding/removing the temporary step.\n\nAcceptance criteria:\n- `sandbox/ralph-ci-failures/docs/note-306.txt` exists.\n- First PR attempt fails remotely near the E2E stage due to the temporary step.\n- Final PR checks are green.",
+      "priority": 72,
+      "dependencies": [],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-307",
+      "title": "Create docs index and trigger temporary ci pre-Build failure",
+      "description": "Create `sandbox/ralph-ci-failures/docs/index.txt` listing files currently in `sandbox/ralph-ci-failures/docs/`. Include `note-306.txt`.\n\nRemote-CI failure simulation requirement (intentional, first PR attempt only):\n- Add a temporary failing step in job `ci` just before the `Build` step, scoped to PR branch `ralph/task-307`.\n- Remove the temporary step during Ralph repair attempt.\n\nAcceptance criteria:\n- `docs/index.txt` exists and references `note-306.txt`.\n- Ralph repair loop runs at least once from remote CI feedback.\n- Final PR checks are green.",
+      "priority": 72,
+      "dependencies": ["task-306"],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-308",
+      "title": "Create blocked-high marker after gamma using temporary Windows-only CI failure",
+      "description": "Create `sandbox/ralph-ci-failures/blocked-high.txt` with one line explaining this high-priority task was dependency-blocked until `gamma.txt` existed.\n\nRemote-CI failure simulation requirement (intentional, first PR attempt only):\n- Add a temporary failing step to job `ci`, scoped to PR branch `ralph/task-308` and `runner.os == 'Windows'`.\n- Remove it during Ralph repair attempt.\n\nAcceptance criteria:\n- `blocked-high.txt` exists.\n- Task demonstrates scheduling with high priority but dependency on `task-305`.\n- Final PR checks are green after one repair loop.",
+      "priority": 98,
+      "dependencies": ["task-305"],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-309",
+      "title": "Create manifest of sandbox text files with temporary Linux-only CI failure",
+      "description": "Create `sandbox/ralph-ci-failures/manifest.txt` listing relative `.txt` files under `sandbox/ralph-ci-failures/` in deterministic sorted order.\n\nDependencies ensure representative files exist.\n\nRemote-CI failure simulation requirement (intentional, first PR attempt only):\n- Add a temporary failing step to job `ci` scoped to PR branch `ralph/task-309` and `runner.os == 'Linux'`.\n- Remove it during Ralph repair attempt.\n\nAcceptance criteria:\n- `manifest.txt` exists and includes at least `README.txt`, `alpha.txt`, `beta.txt`, and `gamma.txt`.\n- First PR attempt fails remote CI and is repaired.\n- Final PR checks are green.",
+      "priority": 68,
+      "dependencies": ["task-301", "task-302", "task-303", "task-305"],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
+    },
+    {
+      "id": "task-310",
+      "title": "Create final verification note referencing docs and manifest with temporary ralph-smoke failure",
+      "description": "Create `sandbox/ralph-ci-failures/final-verify.txt` that references `docs/index.txt`, `manifest.txt`, and `blocked-high.txt`.\n\nRemote-CI failure simulation requirement (intentional, first PR attempt only):\n- Add a temporary failing step to `ralph-smoke` scoped to PR branch `ralph/task-310`.\n- Remove it during Ralph repair attempt.\n\nSafety constraints:\n- Final merged diff must not leave CI workflow changes behind.\n- Keep changes limited to the intended sandbox file(s) after repair.\n\nAcceptance criteria:\n- `final-verify.txt` exists and mentions `docs/index.txt`, `manifest.txt`, and `blocked-high.txt`.\n- Ralph repair loop is exercised from remote CI failure.\n- Final PR checks are green.",
       "priority": 60,
-      "dependencies": [
-        "task-205"
-      ],
-      "status": "Done",
-      "startedAt": "2026-02-24T22:34:37.2979051+00:00",
-      "doneAt": "2026-02-24T22:40:29.1023983+00:00"
-    },
-    {
-      "id": "task-210",
-      "title": "Create delta branch B file",
-      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `delta-b.txt` with a short line identifying branch B.\n\nAcceptance criteria:\n- `sandbox/ralph-series/delta-b.txt` exists.",
-      "priority": 60,
-      "dependencies": [
-        "task-205"
-      ],
-      "status": "Done",
-      "startedAt": "2026-02-24T22:40:52.9947815+00:00",
-      "doneAt": "2026-02-24T22:47:11.3235185+00:00"
-    },
-    {
-      "id": "task-211",
-      "title": "Create epsilon fan-in summary",
-      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `epsilon.txt` that combines or summarizes `delta-a.txt` and `delta-b.txt`.\n\nAcceptance criteria:\n- `sandbox/ralph-series/epsilon.txt` exists.\n- It mentions both delta files.",
-      "priority": 88,
-      "dependencies": [
-        "task-209",
-        "task-210"
-      ],
-      "status": "Done",
-      "startedAt": "2026-02-24T22:47:35.1615468+00:00",
-      "doneAt": "2026-02-24T22:58:33.2839726+00:00"
-    },
-    {
-      "id": "task-212",
-      "title": "Create independent low-priority scratch file",
-      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `scratch-212.txt` with one line of text. This task is intentionally independent and low priority.\n\nAcceptance criteria:\n- `sandbox/ralph-series/scratch-212.txt` exists.",
-      "priority": 10,
-      "dependencies": [],
-      "status": "Done",
-      "startedAt": "2026-02-24T23:30:19.1449443+00:00",
-      "doneAt": "2026-02-24T23:35:57.6101534+00:00"
-    },
-    {
-      "id": "task-213",
-      "title": "Create zeta report from multiple roots",
-      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `zeta-report.txt` that references `README.txt`, `gamma.txt`, and `docs/index.txt`.\n\nAcceptance criteria:\n- `sandbox/ralph-series/zeta-report.txt` exists.\n- It mentions all three source files.",
-      "priority": 75,
-      "dependencies": [
-        "task-201",
-        "task-205",
-        "task-207"
-      ],
-      "status": "Done",
-      "startedAt": "2026-02-24T22:21:08.4282885+00:00",
-      "doneAt": "2026-02-24T22:26:55.6214105+00:00"
-    },
-    {
-      "id": "task-214",
-      "title": "Create copy of epsilon in exports folder",
-      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `sandbox/ralph-series/exports/epsilon-copy.txt` by copying or regenerating content from `epsilon.txt`.\n\nAcceptance criteria:\n- `sandbox/ralph-series/exports/epsilon-copy.txt` exists.",
-      "priority": 55,
-      "dependencies": [
-        "task-211"
-      ],
-      "status": "Done",
-      "startedAt": "2026-02-24T22:58:59.2885255+00:00",
-      "doneAt": "2026-02-24T23:05:01.2149886+00:00"
-    },
-    {
-      "id": "task-215",
-      "title": "Create manifest of current sandbox files",
-      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `manifest.txt` listing the relative paths of `.txt` files currently present under `sandbox/ralph-series/`.\n\nRequirements:\n- Relative paths only.\n- Deterministic order (sorted).\n\nAcceptance criteria:\n- `manifest.txt` exists.\n- It includes at least `README.txt`, `alpha.txt`, and `beta.txt` once their dependencies are satisfied.",
-      "priority": 65,
-      "dependencies": [
-        "task-201",
-        "task-202",
-        "task-203"
-      ],
-      "status": "Done",
-      "startedAt": "2026-02-24T22:27:17.9634528+00:00",
-      "doneAt": "2026-02-24T22:34:14.4651731+00:00"
-    },
-    {
-      "id": "task-216",
-      "title": "Create tie-priority item A",
-      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `tie-a.txt` with one line. This task shares the same priority as another task to exercise id tie-breaking.\n\nAcceptance criteria:\n- `sandbox/ralph-series/tie-a.txt` exists.",
-      "priority": 42,
-      "dependencies": [],
-      "status": "Done",
-      "startedAt": "2026-02-24T23:12:43.8484116+00:00",
-      "doneAt": "2026-02-24T23:18:09.866602+00:00"
-    },
-    {
-      "id": "task-217",
-      "title": "Create tie-priority item B",
-      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `tie-b.txt` with one line. Same priority as task-216 to exercise deterministic ordering by id.\n\nAcceptance criteria:\n- `sandbox/ralph-series/tie-b.txt` exists.",
-      "priority": 42,
-      "dependencies": [],
-      "status": "Done",
-      "startedAt": "2026-02-24T23:18:34.5849313+00:00",
-      "doneAt": "2026-02-24T23:24:32.0495878+00:00"
-    },
-    {
-      "id": "task-218",
-      "title": "Create final aggregate from zeta, manifest, and export",
-      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `final-aggregate.txt` that summarizes `zeta-report.txt`, `manifest.txt`, and `exports/epsilon-copy.txt`.\n\nAcceptance criteria:\n- `sandbox/ralph-series/final-aggregate.txt` exists.\n- It mentions all three inputs.",
-      "priority": 50,
-      "dependencies": [
-        "task-213",
-        "task-214",
-        "task-215"
-      ],
-      "status": "Done",
-      "startedAt": "2026-02-24T23:05:25.8391296+00:00",
-      "doneAt": "2026-02-24T23:12:20.4806552+00:00"
-    },
-    {
-      "id": "task-219",
-      "title": "Create late fan-in verification note",
-      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `verify-219.txt` confirming completion of `final-aggregate.txt`, `tie-a.txt`, and `tie-b.txt` by referencing those file names.\n\nAcceptance criteria:\n- `sandbox/ralph-series/verify-219.txt` exists.\n- It mentions `final-aggregate.txt`, `tie-a.txt`, and `tie-b.txt`.",
-      "priority": 40,
-      "dependencies": [
-        "task-218",
-        "task-216",
-        "task-217"
-      ],
-      "status": "Done",
-      "startedAt": "2026-02-24T23:24:55.5570599+00:00",
-      "doneAt": "2026-02-24T23:29:56.6147919+00:00"
-    },
-    {
-      "id": "task-220",
-      "title": "Create completion stamp for soak run",
-      "description": "Work only under `sandbox/ralph-series/`.\n\nCreate `DONE-220.txt` as the final completion stamp for the synthetic Ralph soak backlog. Include a short summary of how many task files were generated (approximate count is acceptable if clearly labeled).\n\nAcceptance criteria:\n- `sandbox/ralph-series/DONE-220.txt` exists.\n- It references the soak run/final completion.",
-      "priority": 30,
-      "dependencies": [
-        "task-208",
-        "task-219",
-        "task-212"
-      ],
-      "status": "Done",
-      "startedAt": "2026-02-24T23:36:20.5799478+00:00",
-      "doneAt": "2026-02-24T23:42:41.2152773+00:00"
+      "dependencies": ["task-307", "task-308", "task-309"],
+      "status": "New",
+      "startedAt": null,
+      "doneAt": null
     }
   ]
 }
