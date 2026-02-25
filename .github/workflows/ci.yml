@@ -61,10 +61,6 @@ jobs:
           cache: npm
           cache-dependency-path: src/web/package-lock.json
 
-      - name: Temporary PR failure (task-309 Linux only)
-        if: github.event_name == 'pull_request' && github.head_ref == 'ralph/task-309' && runner.os == 'Linux'
-        run: throw 'Intentional temporary Linux CI failure for task-309'
-
       - name: Build
         run: ./scripts/build.ps1 -Configuration Release -CI
 
