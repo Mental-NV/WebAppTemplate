@@ -22,12 +22,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Temporary Windows CI failure (task-303)
-        if: github.event_name == 'pull_request' && github.head_ref == 'ralph/task-303' && runner.os == 'Windows'
-        run: |
-          Write-Host 'Intentional task-303 Windows CI failure for first PR attempt.'
-          exit 1
-
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -54,6 +48,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Temporary Windows CI failure (task-303)
+        if: github.event_name == 'pull_request' && github.head_ref == 'ralph/task-303' && runner.os == 'Windows'
+        run: |
+          Write-Host 'Intentional task-303 Windows CI failure for first PR attempt.'
+          exit 1
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
