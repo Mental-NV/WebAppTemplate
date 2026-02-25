@@ -17,9 +17,9 @@
       "description": "Create `sandbox/ralph-ci-failures/alpha.txt` with exactly 3 short ASCII lines.\n\nRemote-CI failure simulation requirement (intentional, first PR attempt only):\n- Add a temporary failing step to job `ci` in `.github/workflows/ci.yml` that runs only when both conditions are true:\n  - `github.event_name == 'pull_request'`\n  - `github.head_ref == 'ralph/task-302'`\n  - `runner.os == 'Linux'`\n- The step should fail quickly and clearly.\n- On Ralph repair attempt, remove the temporary failing step and keep the sandbox file change.\n\nSafety constraints:\n- Keep workflow syntax valid at all times.\n- Final diff should not contain the temporary failing step.\n\nAcceptance criteria:\n- `sandbox/ralph-ci-failures/alpha.txt` exists and has 3 lines.\n- First PR attempt fails remote CI (Linux matrix path).\n- Final PR checks are green.",
       "priority": 95,
       "dependencies": [],
-      "status": "New",
-      "startedAt": null,
-      "doneAt": null
+      "status": "Done",
+      "startedAt": "2026-02-25T00:38:19.4227824+00:00",
+      "doneAt": "2026-02-25T00:48:06.2484912+00:00"
     },
     {
       "id": "task-303",
