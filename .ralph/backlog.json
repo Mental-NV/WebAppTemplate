@@ -27,9 +27,9 @@
       "description": "Create `sandbox/ralph-ci-failures/beta.txt` with exactly 2 short ASCII lines.\n\nRemote-CI failure simulation requirement (intentional, first PR attempt only):\n- Add a temporary failing step to job `ci` in `.github/workflows/ci.yml` scoped to PR branch `ralph/task-303` and `runner.os == 'Windows'`.\n- Fail fast and print a clear message.\n- On Ralph repair attempt, remove the temporary failing step and keep the sandbox file change.\n\nAcceptance criteria:\n- `sandbox/ralph-ci-failures/beta.txt` exists and has 2 lines.\n- Remote CI fails on first PR attempt and is repaired.\n- Final PR checks are green.",
       "priority": 95,
       "dependencies": [],
-      "status": "New",
-      "startedAt": null,
-      "doneAt": null
+      "status": "Done",
+      "startedAt": "2026-02-25T00:48:28.546369+00:00",
+      "doneAt": "2026-02-25T01:01:30.1459481+00:00"
     },
     {
       "id": "task-304",
