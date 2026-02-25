@@ -115,9 +115,9 @@
         "task-308",
         "task-309"
       ],
-      "status": "New",
-      "startedAt": null,
-      "doneAt": null
+      "status": "Done",
+      "startedAt": "2026-02-25T02:07:08.6360273+00:00",
+      "doneAt": "2026-02-25T02:17:52.6822301+00:00"
     }
   ]
 }
